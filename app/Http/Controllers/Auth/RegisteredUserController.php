@@ -48,6 +48,7 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->route('profile.setup.step1')
+            ->with('success', 'Reģistrācija veiksmīga! Tagad aizpildi savu profilu.');
     }
 }

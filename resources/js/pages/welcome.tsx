@@ -5,22 +5,17 @@ export default function Welcome() {
     const [isVisible, setIsVisible] = useState(false);
     const [currentImage, setCurrentImage] = useState(0);
 
-    // Mock auth state - in real app this would come from props
     const auth = { user: null };
 
-    // Navigation functions
     const redirectToLogin = () => {
-        // In a real Laravel app, this would redirect to the login route
         window.location.href = '/login';
     };
 
     const redirectToRegister = () => {
-        // In a real Laravel app, this would redirect to the register route
         window.location.href = '/register';
     };
 
     const redirectToProfile = () => {
-        // In a real Laravel app, this would redirect to the user profile/dashboard
         window.location.href = '/dashboard';
     };
 
@@ -87,7 +82,7 @@ export default function Welcome() {
             text: "Beidzot atradu skrējiena partneri! Motivācija ir divreiz lielāka, kad ir ar ko dalīties.",
             sport: "Skrējiens",
             rating: 5,
-            image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+            image: "https://hips.hearstapps.com/hmg-prod/images/single-women-happier-than-men-675ac891b545d.jpg?crop=0.670xw:1.00xh;0.247xw,0&resize=640:*"
         },
         {
             name: "Andris P.",

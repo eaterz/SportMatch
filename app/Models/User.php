@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Friendship;
+use App\Models\Message;
 
 class User extends Authenticatable
 {
@@ -36,6 +38,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
 
     /**
      * Get the attributes that should be cast.
@@ -90,5 +93,151 @@ class User extends Authenticatable
     public function getAgeAttribute(): ?int
     {
         return $this->profile?->age;
+    }
+
+
+
+// Iegūst pieejamību konkrētai dienai
+    public function getAvailabilityForDay(string $day): ?AvailabilitySchedule
+    {
+        return $this->availabilitySchedules()
+            ->where('day_of_week', $day)
+            ->first();
+    }
+
+// Pārbauda vai ir pieejams konkrētā laikā
+    public function isAvailableAt(string $day, string $time): bool
+    {
+        $schedule = $this->getAvailabilityForDay($day);
+
+        if (!$schedule) {
+            return false;
+        }
+
+        return $time >= $schedule->start_time && $time <= $schedule->end_time;
+    }
+
+// Iegūst visas nedēļas pieejamību
+    public function getWeeklyAvailability(): array
+    {
+        $schedules = $this->availabilitySchedules()
+            ->orderByRaw("FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
+            ->get();
+
+        $weekly = [];
+        foreach ($schedules as $schedule) {
+            $weekly[$schedule->day_of_week] = [
+                'start' => $schedule->start_time,
+                'end' => $schedule->end_time,
+                'label' => $schedule->day_label . ': ' . $schedule->time_range
+            ];
+        }
+
+        return $weekly;
+    }
+    public function sentFriendships(): HasMany
+    {
+        return $this->hasMany(Friendship::class, 'sender_id');
+    }
+
+    public function receivedFriendships(): HasMany
+    {
+        return $this->hasMany(Friendship::class, 'receiver_id');
+    }
+
+    public function friends()
+    {
+        return $this->belongsToMany(User::class, 'friendships', 'sender_id', 'receiver_id')
+            ->wherePivot('status', 'accepted')
+            ->withTimestamps()
+            ->union(
+                $this->belongsToMany(User::class, 'friendships', 'receiver_id', 'sender_id')
+                    ->wherePivot('status', 'accepted')
+                    ->withTimestamps()
+            );
+    }
+
+// Message relationships
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+// Helper methods
+    public function sendFriendRequest(User $user): Friendship
+    {
+        return Friendship::create([
+            'sender_id' => $this->id,
+            'receiver_id' => $user->id,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function acceptFriendRequest(User $user): bool
+    {
+        $friendship = Friendship::where('sender_id', $user->id)
+            ->where('receiver_id', $this->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($friendship) {
+            $friendship->update([
+                'status' => 'accepted',
+                'accepted_at' => now(),
+            ]);
+            return true;
+        }
+
+        return false;
+    }
+
+    public function isFriendWith(User $user): bool
+    {
+        return Friendship::forUser($this->id)
+            ->forUser($user->id)
+            ->accepted()
+            ->exists();
+    }
+
+    public function hasPendingRequestFrom(User $user): bool
+    {
+        return Friendship::where('sender_id', $user->id)
+            ->where('receiver_id', $this->id)
+            ->pending()
+            ->exists();
+    }
+
+    public function hasSentRequestTo(User $user): bool
+    {
+        return Friendship::where('sender_id', $this->id)
+            ->where('receiver_id', $user->id)
+            ->pending()
+            ->exists();
+    }
+
+    public function sendMessage(User $receiver, string $message): Message
+    {
+        return Message::create([
+            'sender_id' => $this->id,
+            'receiver_id' => $receiver->id,
+            'message' => $message,
+        ]);
+    }
+
+    public function getConversationWith(User $user)
+    {
+        return Message::betweenUsers($this->id, $user->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+    }
+
+    public function getUnreadMessagesCount(): int
+    {
+        return $this->receivedMessages()->unread()->count();
     }
 }

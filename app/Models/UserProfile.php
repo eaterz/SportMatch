@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class UserProfile extends Model
 {
@@ -12,7 +13,7 @@ class UserProfile extends Model
 
     protected $fillable = [
         'user_id',
-        'birth_year',
+        'birth_date', // updated
         'phone',
         'gender',
         'bio',
@@ -20,7 +21,7 @@ class UserProfile extends Model
     ];
 
     protected $casts = [
-        'birth_year' => 'integer',
+        'birth_date' => 'date', // cast as Carbon date instance
     ];
 
     public function user(): BelongsTo
@@ -29,15 +30,17 @@ class UserProfile extends Model
     }
 
     // Aprēķina vecumu
-    public function getAgeAttribute(): int
+    public function getAgeAttribute(): ?int
     {
-        return now()->year - $this->birth_year;
+        return $this->birth_date
+            ? Carbon::parse($this->birth_date)->age
+            : null;
     }
 
     // Pārbauda vai profils ir pabeigts
     public function getIsCompleteAttribute(): bool
     {
-        return !is_null($this->birth_year)
+        return !is_null($this->birth_date)
             && !is_null($this->gender)
             && !is_null($this->location);
     }
