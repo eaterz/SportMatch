@@ -10,14 +10,12 @@ use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    /**
-     * Display all conversations
-     */
+
     public function index()
     {
         $user = Auth::user();
 
-        // Get all friends with last message
+
         $conversations = $user->friends()
             ->with(['profile'])
             ->get()
@@ -51,24 +49,22 @@ class MessageController extends Controller
         ]);
     }
 
-    /**
-     * Display conversation with specific user
-     */
+
     public function conversation(User $otherUser)
     {
         $user = Auth::user();
 
-        // Check if they are friends
+
         if (!$user->isFriendWith($otherUser)) {
             return redirect()->route('messages.index')
                 ->with('error', 'Jūs varat sūtīt ziņas tikai draugiem');
         }
 
-        // Get conversation messages
+
         $messages = $user->getConversationWith($otherUser)
             ->load(['sender', 'receiver']);
 
-        // Mark messages as read
+
         Message::where('sender_id', $otherUser->id)
             ->where('receiver_id', $user->id)
             ->unread()
@@ -81,14 +77,10 @@ class MessageController extends Controller
         ]);
     }
 
-    /**
-     * Chat interface (alternative to conversation)
-     */
     public function chat(User $otherUser = null)
     {
         $user = Auth::user();
 
-        // Get all friends for sidebar
         $friends = $user->friends()
             ->with(['profile'])
             ->get()
@@ -121,7 +113,7 @@ class MessageController extends Controller
         $selectedUser = null;
 
         if ($otherUser && $user->isFriendWith($otherUser)) {
-            // Get conversation messages
+
             $messages = $user->getConversationWith($otherUser)
                 ->map(function($message) use ($user) {
                     return [
@@ -134,7 +126,7 @@ class MessageController extends Controller
                     ];
                 });
 
-            // Mark messages as read
+
             Message::where('sender_id', $otherUser->id)
                 ->where('receiver_id', $user->id)
                 ->unread()
@@ -156,9 +148,7 @@ class MessageController extends Controller
         ]);
     }
 
-    /**
-     * Send a message
-     */
+
     public function send(Request $request, User $receiver)
     {
         $request->validate([
@@ -167,15 +157,15 @@ class MessageController extends Controller
 
         $user = Auth::user();
 
-        // Check if they are friends
+
         if (!$user->isFriendWith($receiver)) {
             return back()->with('error', 'Jūs varat sūtīt ziņas tikai draugiem');
         }
 
-        // Send message using User model method
+
         $message = $user->sendMessage($receiver, $request->message);
 
-        // If it's an AJAX request, return JSON
+
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => [
@@ -190,9 +180,7 @@ class MessageController extends Controller
         return back();
     }
 
-    /**
-     * Mark messages as read
-     */
+
     public function markAsRead(Request $request, User $sender)
     {
         $user = Auth::user();
@@ -209,14 +197,11 @@ class MessageController extends Controller
         return back();
     }
 
-    /**
-     * Delete a message
-     */
     public function delete(Message $message)
     {
         $user = Auth::user();
 
-        // Check if user is sender or receiver
+
         if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
             return back()->with('error', 'Nav atļauts dzēst šo ziņu');
         }
@@ -226,9 +211,6 @@ class MessageController extends Controller
         return back()->with('success', 'Ziņa dzēsta');
     }
 
-    /**
-     * Get unread messages count (for notifications)
-     */
     public function unreadCount(Request $request)
     {
         $user = Auth::user();
@@ -237,9 +219,7 @@ class MessageController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    /**
-     * Get friends list as JSON (for AJAX)
-     */
+
     public function friendsJson(Request $request)
     {
         $user = Auth::user();

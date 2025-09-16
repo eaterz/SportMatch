@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Friendship;
 use App\Models\Message;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -145,17 +146,54 @@ class User extends Authenticatable
         return $this->hasMany(Friendship::class, 'receiver_id');
     }
 
+    public function friendsAsSender()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'friendships',
+            'sender_id',
+            'receiver_id'
+        )
+            ->wherePivot('status', 'accepted')
+            ->withTimestamps();
+    }
+
+    public function friendsAsReceiver()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'friendships',
+            'receiver_id',
+            'sender_id'
+        )
+            ->wherePivot('status', 'accepted')
+            ->withTimestamps();
+    }
+
     public function friends()
     {
-        return $this->belongsToMany(User::class, 'friendships', 'sender_id', 'receiver_id')
-            ->wherePivot('status', 'accepted')
-            ->withTimestamps()
-            ->union(
-                $this->belongsToMany(User::class, 'friendships', 'receiver_id', 'sender_id')
-                    ->wherePivot('status', 'accepted')
-                    ->withTimestamps()
-            );
+        // Get IDs of all friends
+        $senderFriendIds = $this->friendsAsSender()->pluck('users.id');
+        $receiverFriendIds = $this->friendsAsReceiver()->pluck('users.id');
+        $allFriendIds = $senderFriendIds->merge($receiverFriendIds)->unique();
+
+        // Return User models for all friends
+        return User::whereIn('id', $allFriendIds);
     }
+
+// Helper method to check if user is friend with another user
+    public function isFriendWith(User $user): bool
+    {
+        return Friendship::where(function($q) use ($user) {
+            $q->where('sender_id', $this->id)
+                ->where('receiver_id', $user->id);
+        })->orWhere(function($q) use ($user) {
+            $q->where('sender_id', $user->id)
+                ->where('receiver_id', $this->id);
+        })->where('status', 'accepted')
+            ->exists();
+    }
+
 
 // Message relationships
     public function sentMessages(): HasMany
@@ -194,30 +232,6 @@ class User extends Authenticatable
         }
 
         return false;
-    }
-
-    public function isFriendWith(User $user): bool
-    {
-        return Friendship::forUser($this->id)
-            ->forUser($user->id)
-            ->accepted()
-            ->exists();
-    }
-
-    public function hasPendingRequestFrom(User $user): bool
-    {
-        return Friendship::where('sender_id', $user->id)
-            ->where('receiver_id', $this->id)
-            ->pending()
-            ->exists();
-    }
-
-    public function hasSentRequestTo(User $user): bool
-    {
-        return Friendship::where('sender_id', $this->id)
-            ->where('receiver_id', $user->id)
-            ->pending()
-            ->exists();
     }
 
     public function sendMessage(User $receiver, string $message): Message

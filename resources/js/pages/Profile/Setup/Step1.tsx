@@ -82,6 +82,7 @@ export default function Step1({ profile, currentStep, totalSteps }: Props) {
                                     <InputError message={errors.birth_date} />
                                 </div>
 
+                                {/* Dzimums */}
                                 <div className="grid gap-2">
                                     <label className="block text-sm font-medium text-gray-700">
                                         <User className="w-4 h-4 inline mr-2" />
@@ -117,8 +118,6 @@ export default function Step1({ profile, currentStep, totalSteps }: Props) {
                                     <InputError message={errors.gender} />
                                 </div>
 
-
-
                                 {/* Atrašanās vieta */}
                                 <div className="grid gap-2">
                                     <label htmlFor="location" className="block text-sm font-medium text-gray-700">
@@ -143,14 +142,19 @@ export default function Step1({ profile, currentStep, totalSteps }: Props) {
                                         <Phone className="w-4 h-4 inline mr-2" />
                                         Telefona numurs
                                     </label>
-                                    <input
-                                        id="phone"
-                                        type="tel"
-                                        name="phone"
-                                        defaultValue={profile.phone}
-                                        placeholder="+371 12345678"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400"
-                                    />
+                                    <div className="flex">
+                                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-100 text-gray-500">
+                                            +371
+                                        </span>
+                                        <input
+                                            id="phone"
+                                            type="tel"
+                                            name="phone"
+                                            defaultValue={profile.phone?.replace(/^\+?371/, '') || ''}
+                                            placeholder="12345678"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:border-gray-400"
+                                        />
+                                    </div>
                                     <InputError message={errors.phone} />
                                 </div>
 

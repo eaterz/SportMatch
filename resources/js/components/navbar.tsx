@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { Trophy, Search, Users, User, ChevronDown, LogOut, Settings } from 'lucide-react';
+import { Trophy, Search, Users, User, ChevronDown, LogOut, Settings,UserSearch } from 'lucide-react';
 
 interface User {
     id: number;
@@ -17,7 +17,7 @@ export default function Navbar({ user }: Props) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     return (
-        <nav className="bg-white shadow-sm">
+        <nav className="bg-white shadow-sm mx-30 rounded-b-2xl">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -31,19 +31,27 @@ export default function Navbar({ user }: Props) {
                     {/* Navigation Links */}
                     <div className="flex items-center space-x-6">
                         <Link
-                            href="/groups/search"
+                            href="/groups"
                             className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                             <Search className="w-4 h-4" />
-                            <span>Meklēt pūlciņus</span>
+                            <span>Meklēt pulciņus</span>
                         </Link>
 
                         <Link
                             href="/partners"
                             className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                            <Users className="w-4 h-4" />
+                            <UserSearch className="w-4 h-4" />
                             <span>Partneri</span>
+                        </Link>
+
+                        <Link
+                            href="/friends"
+                            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                            <Users className="w-4 h-4" />
+                            <span>Draugi</span>
                         </Link>
 
                         {/* Profile Dropdown */}
