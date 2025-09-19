@@ -23,13 +23,13 @@ class RegisteredUserController extends Controller
         return Inertia::render('auth/register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
+
+
+
+    // Saglabā jaunu lietotāju datubāzē un pieslēdz viņu sistēmai
     public function store(Request $request): RedirectResponse
     {
+        // Validācija – pārbauda, vai lietotāja ievadītie dati ir korekti
         $request->validate([
             'name' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
@@ -37,18 +37,23 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Izveido jaunu lietotāju datubāzē ar ievadītajiem datiem
         $user = User::create([
-            'name' => $request->name,
-            'lastname' => $request->lastname,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $request->name, // saglabā vārdu
+            'lastname' => $request->lastname, // saglabā uzvārdu
+            'email' => $request->email, // saglabā e-pastu
+            'password' => Hash::make($request->password), // paroli šifrē ar Hash
         ]);
 
+        // Izsauc notikumu – jauns lietotājs reģistrēts (var nosūtīt e-pastu utt.)
         event(new Registered($user));
 
+        // Automātiski pieslēdz jauno lietotāju sistēmā
         Auth::login($user);
 
+        // Pēc reģistrācijas pāradresē uz profila aizpildīšanas pirmo soli ar paziņojumu
         return redirect()->route('profile.setup.step1')
             ->with('success', 'Reģistrācija veiksmīga! Tagad aizpildi savu profilu.');
     }
+
 }

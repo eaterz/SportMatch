@@ -82,8 +82,8 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
         router.get(`/groups/${groupId}`);
     };
 
-    const handleEventClick = (eventId: number) => {
-        router.get(`/events/${eventId}`);
+    const handleEventClick = (eventId: number, groupId: number) => {
+        router.get(`/groups/${groupId}/events/${eventId}`);
     };
 
     const formatDate = (dateString: string) => {
@@ -162,7 +162,7 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
                             </p>
                             <button
                                 onClick={handleFindGroups}
-                                className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-medium transition-colors"
+                                className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-medium transition-colors "
                             >
                                 Meklēt aktivitātes
                             </button>
@@ -300,7 +300,7 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
                             {upcomingEvents.slice(0, 3).map((event) => (
                                 <div
                                     key={event.id}
-                                    onClick={() => handleEventClick(event.id)}
+                                    onClick={() => handleEventClick(event.id, event.group.id)}
                                     className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                                 >
                                     <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">

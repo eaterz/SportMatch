@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class FriendsController extends Controller
 {
-    /**
-     * Display friends list and pending requests
-     */
+
     public function index()
     {
         $user = Auth::user();
@@ -99,9 +97,7 @@ class FriendsController extends Controller
         ]);
     }
 
-    /**
-     * Accept friend request
-     */
+
     public function acceptRequest($senderId)
     {
         $user = Auth::user();
@@ -123,9 +119,7 @@ class FriendsController extends Controller
         return back()->with('error', 'Pieprasījums nav atrasts');
     }
 
-    /**
-     * Reject friend request
-     */
+
     public function rejectRequest($senderId)
     {
         $user = Auth::user();
@@ -143,9 +137,6 @@ class FriendsController extends Controller
         return back()->with('error', 'Pieprasījums nav atrasts');
     }
 
-    /**
-     * Cancel sent friend request
-     */
     public function cancelRequest($receiverId)
     {
         $user = Auth::user();
@@ -163,9 +154,7 @@ class FriendsController extends Controller
         return back()->with('error', 'Pieprasījums nav atrasts');
     }
 
-    /**
-     * Remove friend
-     */
+
     public function removeFriend($friendId)
     {
         $user = Auth::user();

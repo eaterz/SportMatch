@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
+
+
+type FooterContentKey = keyof typeof import('@/data/footerContent').footerContent;
 import { Users, Trophy, Calendar, MapPin, Star, ChevronRight, Search } from 'lucide-react';
+import FooterModal from '@/components/FooterModal'; // Import the FooterModal component
+import { footerContent } from '@/data/footerContent'; // Import the footer content data
 
 export default function Welcome() {
     const [isVisible, setIsVisible] = useState(false);
     const [currentImage, setCurrentImage] = useState(0);
+    const [modalState, setModalState] = useState({
+        isOpen: false,
+        title: '',
+        content: ''
+    });
 
     const auth = { user: null };
 
@@ -17,6 +27,27 @@ export default function Welcome() {
 
     const redirectToProfile = () => {
         window.location.href = '/dashboard';
+    };
+
+    // Function to open modal with specific content
+    const openModal = (contentKey: FooterContentKey) => {
+        const content = footerContent[contentKey];
+        if (content) {
+            setModalState({
+                isOpen: true,
+                title: content.title,
+                content: content.content
+            });
+        }
+    };
+
+    // Function to close modal
+    const closeModal = () => {
+        setModalState({
+            isOpen: false,
+            title: '',
+            content: ''
+        });
     };
 
     const sportImages = [
@@ -398,7 +429,7 @@ export default function Welcome() {
             </section>
 
             {/* Footer */}
-            <footer className="bg-white border-t border-gray-200 py-12">
+            <footer className="bg-white  border-t border-gray-200 py-12">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="grid md:grid-cols-4 gap-8 mb-8">
                         <div className="col-span-2">
@@ -415,17 +446,43 @@ export default function Welcome() {
                         <div>
                             <h4 className="font-semibold text-gray-900 mb-4">Platforma</h4>
                             <ul className="space-y-2 text-gray-600">
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Kā Darbojas</a></li>
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Sporta Veidi</a></li>
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Cenas</a></li>
+                                <li>
+                                    <button
+                                        onClick={() => openModal('ka-darbojas')}
+                                        className="hover:text-gray-900 transition-colors text-left"
+                                    >
+                                        Kā Darbojas
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() => openModal('sporta-veidi')}
+                                        className="hover:text-gray-900 transition-colors text-left"
+                                    >
+                                        Sporta Veidi
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold text-gray-900 mb-4">Uzņēmums</h4>
                             <ul className="space-y-2 text-gray-600">
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Par Mums</a></li>
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Kontakti</a></li>
-                                <li><a href="#" className="hover:text-gray-900 transition-colors">Karjera</a></li>
+                                <li>
+                                    <button
+                                        onClick={() => openModal('par-mums')}
+                                        className="hover:text-gray-900 transition-colors text-left"
+                                    >
+                                        Par Mums
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() => openModal('kontakti')}
+                                        className="hover:text-gray-900 transition-colors text-left"
+                                    >
+                                        Kontakti
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -435,13 +492,30 @@ export default function Welcome() {
                             © 2025 SportMatch. Visas tiesības aizsargātas.
                         </p>
                         <div className="flex space-x-6 text-sm text-gray-600 mt-4 md:mt-0">
-                            <a href="#" className="hover:text-gray-900 transition-colors">Privātuma Politika</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Noteikumi</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Sīkdatnes</a>
+                            <button
+                                onClick={() => openModal('privatuma-politika')}
+                                className="hover:text-gray-900 transition-colors"
+                            >
+                                Privātuma Politika
+                            </button>
+                            <button
+                                onClick={() => openModal('noteikumi')}
+                                className="hover:text-gray-900 transition-colors"
+                            >
+                                Noteikumi
+                            </button>
                         </div>
                     </div>
                 </div>
             </footer>
+
+            {/* Footer Modal */}
+            <FooterModal
+                isOpen={modalState.isOpen}
+                onClose={closeModal}
+                title={modalState.title}
+                content={modalState.content}
+            />
         </div>
     );
 }

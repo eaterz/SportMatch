@@ -10,11 +10,10 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
+
 class ChatController extends Controller
 {
-    /**
-     * Display chat interface
-     */
+
     public function index(User $friend = null)
     {
         $user = Auth::user();
@@ -134,9 +133,7 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * Send a message
-     */
+
     public function sendMessage(Request $request, User $friend)
     {
         try {
@@ -175,9 +172,7 @@ class ChatController extends Controller
     }
 
 
-    /**
-     * Mark messages as read
-     */
+
     public function markAsRead(Request $request, User $sender)
     {
         $user = Auth::user();
@@ -190,9 +185,7 @@ class ChatController extends Controller
         return response()->json(['success' => true]);
     }
 
-    /**
-     * Get new messages (for polling fallback if needed)
-     */
+
     public function getMessages(User $friend)
     {
         $user = Auth::user();

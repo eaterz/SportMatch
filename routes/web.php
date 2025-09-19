@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\ProfileSetupController;
@@ -41,11 +42,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
 
 
-    Route::get('/dashboard', function () {
-        return Inertia::render('dashboard', [
-            'user' => Auth::user(),
-        ]);
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 
 
@@ -121,36 +118,39 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         ->prefix('groups')
         ->name('groups.')
         ->group(function () {
-            // Saraksts un meklēšana
+            // Main routes
             Route::get('/', 'index')->name('index');
             Route::get('/create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
 
-            // Konkrēta grupa
+            // Specific group
             Route::get('/{group}', 'show')->name('show');
             Route::post('/{group}/join', 'join')->name('join');
             Route::post('/{group}/leave', 'leave')->name('leave');
 
-            // Dalībnieki
+            // Members
             Route::get('/{group}/members', 'members')->name('members');
             Route::post('/{group}/members/{member}/approve', 'approveMember')->name('members.approve');
             Route::delete('/{group}/members/{member}', 'removeMember')->name('members.remove');
 
-            // Ziņas (posts)
+            // Posts
             Route::post('/{group}/posts', 'createPost')->name('posts.create');
             Route::delete('/{group}/posts/{post}', 'deletePost')->name('posts.delete');
-            Route::post('/{group}/posts/{post}/like', 'toggleLike')->name('posts.like');
+            Route::post('/{group}/posts/{post}/like', 'togglePostLike')->name('posts.like');
             Route::post('/{group}/posts/{post}/comment', 'addComment')->name('posts.comment');
 
-            // Pasākumi
+            // Events
             Route::get('/{group}/events', 'events')->name('events');
             Route::get('/{group}/events/create', 'createEvent')->name('events.create');
             Route::post('/{group}/events', 'storeEvent')->name('events.store');
             Route::get('/{group}/events/{event}', 'showEvent')->name('events.show');
             Route::post('/{group}/events/{event}/join', 'joinEvent')->name('events.join');
             Route::post('/{group}/events/{event}/leave', 'leaveEvent')->name('events.leave');
+            Route::put('/{group}/events/{event}', 'updateEvent')->name('events.update');
+            Route::get('/{group}/events/{event}/edit', 'editEvent')->name('events.edit');
+            Route::delete('/{group}/events/{event}', 'destroyEvent')->name('events.destroy');
 
-            // Administrēšana
+            // Administration
             Route::get('/{group}/settings', 'settings')->name('settings');
             Route::put('/{group}', 'update')->name('update');
             Route::delete('/{group}', 'destroy')->name('destroy');

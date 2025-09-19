@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Send, Search, ArrowLeft, User, Circle, DoorOpen, DoorClosed } from 'lucide-react';
 import axios from 'axios';
+import echoService from '../services/echo.js';
 
 declare global {
     interface Window {
@@ -71,15 +72,12 @@ export default function Chat({
     const [sending, setSending] = useState(false);
     const [currentFriend, setCurrentFriend] = useState<Friend | null>(selectedFriend);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const echoRef = useRef<any>(null);
 
     // Configure axios defaults
     useEffect(() => {
-        // Configure axios for Laravel
         axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
         axios.defaults.withCredentials = true;
 
-        // Add response interceptor to handle errors
         const responseInterceptor = axios.interceptors.response.use(
             (response) => response,
             (error) => {
@@ -96,58 +94,28 @@ export default function Chat({
         };
     }, []);
 
-    // Initialize Pusher and Echo
+    // Initialize Echo service and listen to chat
     useEffect(() => {
         if (!pusherKey) return;
 
-        const initializePusher = async () => {
+        const initializeChat = async () => {
             try {
-                const Pusher = (await import('pusher-js')).default;
-                const Echo = (await import('laravel-echo')).default;
+                await echoService.initialize(pusherKey, pusherCluster);
 
-                window.Pusher = Pusher;
+                // Listen to chat messages
+                echoService.listenToChat(user.id, handleIncomingMessage);
 
-                // Initialize Echo without CSRF token for auth headers
-                // Pusher auth will use cookies automatically
-                echoRef.current = new Echo({
-                    broadcaster: 'pusher',
-                    key: pusherKey,
-                    cluster: pusherCluster,
-                    forceTLS: true,
-                    authEndpoint: '/broadcasting/auth',
-                    auth: {
-                        headers: {
-                            'Accept': 'application/json',
-                        }
-                    }
-                });
-
-                // Listen for new messages on the user's private channel
-                echoRef.current.private(`chat.${user.id}`)
-                    .listen('.message.sent', (e: any) => {
-                        console.log('Received message via Pusher:', e);
-                        handleIncomingMessage(e);
-                    })
-                    .error((error: any) => {
-                        console.error('Pusher channel error:', error);
-                    });
-
-                console.log('Pusher initialized successfully');
+                console.log('Chat WebSocket initialized');
             } catch (error) {
-                console.error('Failed to initialize Pusher:', error);
+                console.error('Failed to initialize chat WebSocket:', error);
             }
         };
 
-        initializePusher();
+        initializeChat();
 
         return () => {
-            if (echoRef.current) {
-                try {
-                    echoRef.current.disconnect();
-                } catch (error) {
-                    console.error('Error disconnecting Echo:', error);
-                }
-            }
+            // Leave only the chat channel when component unmounts
+            echoService.leaveChannel(`chat.${user.id}`);
         };
     }, [user.id, pusherKey, pusherCluster]);
 
@@ -305,17 +273,17 @@ export default function Chat({
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Čati</h2>
-                    <a
-                        href="/friends"
-                        className="group flex items-center mb-4 gap-3 rounded-2xl bg-white  transition-all duration-300 px-4 py-3"
-                    >
-                        {/* Default closed door */}
-                        <DoorClosed className="h-7 w-7 text-gray-600 group-hover:hidden" />
-                        {/* Opens on hover */}
-                        <DoorOpen className="h-7 w-7 text-black hidden group-hover:block" />
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Čati</h2>
+                        <a
+                            href="/friends"
+                            className="group flex items-center mb-4 gap-3 rounded-2xl bg-white  transition-all duration-300 px-4 py-3"
+                        >
+                            {/* Default closed door */}
+                            <DoorClosed className="h-7 w-7 text-gray-600 group-hover:hidden" />
+                            {/* Opens on hover */}
+                            <DoorOpen className="h-7 w-7 text-black hidden group-hover:block" />
 
-                    </a>
+                        </a>
                     </div>
 
                     <div className="relative">

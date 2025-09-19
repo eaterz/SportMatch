@@ -54,13 +54,16 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     const [selectedSkillLevel, setSelectedSkillLevel] = useState(filters.skill_level || '');
     const [selectedDistance, setSelectedDistance] = useState(filters.max_distance || '');
 
+    // Funkcija, kas izsauc servera pieprasījumu ar atlasītajiem filtriem
     const handleSearch = () => {
         router.get('/partners', {
-            search: searchTerm,
-            sport: selectedSport,
-            skill_level: selectedSkillLevel,
-            max_distance: selectedDistance,
+            // Parametri, kas tiek nodoti serverim
+            search: searchTerm,             // Meklēšana pēc vārda vai lokācijas
+            sport: selectedSport,           // Atlasītais sporta veids
+            skill_level: selectedSkillLevel, // Prasmju līmenis
+            max_distance: selectedDistance, // Attāluma ierobežojums
         }, {
+            // Saglabā esošo stāvokli un scroll pozīciju pēc pieprasījuma
             preserveState: true,
             preserveScroll: true,
         });
@@ -70,7 +73,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
         setSearchTerm('');
         setSelectedSport('');
         setSelectedSkillLevel('');
-        setSelectedDistance('');
+        // setSelectedDistance('');
         router.get('/partners', {}, {
             preserveState: true,
             preserveScroll: true,
@@ -167,14 +170,19 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         Sporta veids
                                     </label>
                                     <select
+                                        // saglabā izvēlēto sporta veidu komponenta state
                                         value={selectedSport}
+                                        // atjauno izvēlēto vērtību pēc lietotāja izvēles
                                         onChange={(e) => setSelectedSport(e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                                     >
+                                        {/* Noklusējuma opcija, lai parādītu visus sporta veidus */}
                                         <option value="">Visi sporta veidi</option>
+
+                                        {/* Dinamiski izveido opciju sarakstu no sporta veidu masīva */}
                                         {sports.map(sport => (
                                             <option key={sport.id} value={sport.id}>
-                                                {sport.icon} {sport.name}
+                                                {sport.icon} {sport.name} {/* Ikona + sporta nosaukums */}
                                             </option>
                                         ))}
                                     </select>
@@ -194,22 +202,22 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         <option value="advanced">Pieredzējis</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Attālums (km)
-                                    </label>
-                                    <select
-                                        value={selectedDistance}
-                                        onChange={(e) => setSelectedDistance(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
-                                    >
-                                        <option value="">Jebkurš attālums</option>
-                                        <option value="5">5 km</option>
-                                        <option value="10">10 km</option>
-                                        <option value="25">25 km</option>
-                                        <option value="50">50 km</option>
-                                    </select>
-                                </div>
+                                {/*<div>*/}
+                                {/*    <label className="block text-sm font-medium text-gray-700 mb-2">*/}
+                                {/*        Attālums (km)*/}
+                                {/*    </label>*/}
+                                {/*    <select*/}
+                                {/*        value={selectedDistance}*/}
+                                {/*        onChange={(e) => setSelectedDistance(e.target.value)}*/}
+                                {/*        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"*/}
+                                {/*    >*/}
+                                {/*        <option value="">Jebkurš attālums</option>*/}
+                                {/*        <option value="5">5 km</option>*/}
+                                {/*        <option value="10">10 km</option>*/}
+                                {/*        <option value="25">25 km</option>*/}
+                                {/*        <option value="50">50 km</option>*/}
+                                {/*    </select>*/}
+                                {/*</div>*/}
                             </div>
                             <div className="mt-4 flex justify-between">
                                 <button
