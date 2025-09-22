@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
-import { Bell, MessageSquare, Users, Calendar, UserPlus, Trash2, Check, CheckCheck } from 'lucide-react';
+import { Bell, MessageSquare, Users, Calendar, UserPlus, Trash2, Check, CheckCheck, X } from 'lucide-react';
 import Navbar from '@/components/navbar';
 import axios from 'axios';
 
@@ -64,13 +64,24 @@ export default function NotificationsIndex({ user, notifications, unread_count }
         });
     };
 
+    const deleteAllNotifications = () => {
+        if (confirm('Vai tiešām vēlaties dzēst VISUS paziņojumus? Šo darbību nevar atsaukt.')) {
+            router.post('/notifications/delete-all', {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedNotifications([]);
+                }
+            });
+        }
+    };
+
     const handleNotificationClick = (notification: Notification) => {
         if (!notification.is_read) {
             markAsRead(notification.id);
         }
 
         if (notification.action_url) {
-            router.get(notification.action_url);
+            router.visit(notification.action_url, { method: 'get' });
         }
     };
 
@@ -154,15 +165,25 @@ export default function NotificationsIndex({ user, notifications, unread_count }
                             )}
                         </div>
 
-                        {unread_count > 0 && (
+                        <div className="flex items-center gap-4">
+                            {unread_count > 0 && (
+                                <button
+                                    onClick={markAllAsRead}
+                                    className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                                >
+                                    <CheckCheck className="w-4 h-4" />
+                                    Atzīmēt visus kā lasītus
+                                </button>
+                            )}
+
                             <button
-                                onClick={markAllAsRead}
-                                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                                onClick={deleteAllNotifications}
+                                className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
                             >
-                                <CheckCheck className="w-4 h-4" />
-                                Atzīmēt visus kā lasītus
+                                <X className="w-4 h-4" />
+                                Dzēst visus
                             </button>
-                        )}
+                        </div>
                     </div>
                 )}
 

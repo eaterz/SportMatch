@@ -8,7 +8,6 @@ use Inertia\Inertia;
 
 class NotificationController extends Controller
 {
-
     public function index()
     {
         $user = Auth::user();
@@ -31,12 +30,11 @@ class NotificationController extends Controller
         });
 
         return Inertia::render('Notifications/Index', [
-            'user' => $user, // ADD THIS LINE - This was missing!
+            'user' => $user,
             'notifications' => $notifications,
-            'unread_count' => $user->unread_notifications_count
+            'unread_count' => $user->notifications()->unread()->count()
         ]);
     }
-
 
     public function recent()
     {
@@ -61,10 +59,9 @@ class NotificationController extends Controller
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => $user->unread_notifications_count
+            'unread_count' => $user->notifications()->unread()->count()
         ]);
     }
-
 
     public function markAsRead($id)
     {
@@ -78,15 +75,15 @@ class NotificationController extends Controller
         return response()->json(['success' => true]);
     }
 
-
     public function markAllAsRead()
     {
         $user = Auth::user();
+
+        // Update all unread notifications
         $user->notifications()->unread()->update(['read_at' => now()]);
 
         return back()->with('success', 'Visi paziņojumi atzīmēti kā lasīti');
     }
-
 
     public function destroy($id)
     {
@@ -100,12 +97,34 @@ class NotificationController extends Controller
         return back()->with('success', 'Paziņojums dzēsts');
     }
 
+    public function deleteAll()
+    {
+        $user = Auth::user();
+
+        // Debug: Check if we can find notifications
+        $count = $user->notifications()->count();
+        \Log::info("User {$user->id} has {$count} notifications");
+
+        if ($count === 0) {
+            return back()->with('info', 'Nav paziņojumu, ko dzēst');
+        }
+
+        // Try direct deletion with query builder
+        $deletedCount = \DB::table('notifications')
+            ->where('user_id', $user->id)
+            ->delete();
+
+        \Log::info("Deleted {$deletedCount} notifications");
+
+        return back()->with('success', "Visi paziņojumi dzēsti ({$deletedCount} paziņojumi)");
+    }
+
     public function unreadCount()
     {
         $user = Auth::user();
 
         return response()->json([
-            'count' => $user->unread_notifications_count
+            'count' => $user->notifications()->unread()->count()
         ]);
     }
 }
