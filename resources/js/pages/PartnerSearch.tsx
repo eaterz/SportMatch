@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Search, MapPin, UserPlus, Clock, Filter, Star, User } from 'lucide-react';
 import Navbar from '@/components/navbar';
+import PartnerProfileModal from '@/components/PartnerProfileModal';
 
 interface UserType {
     id: number;
@@ -20,18 +21,32 @@ interface Sport {
     };
 }
 
+interface AvailabilitySchedule {
+    day_of_week: string;
+    start_time: string;
+    end_time: string;
+}
+
 interface Partner {
     id: number;
     name: string;
     lastname?: string;
+    email: string;
     profile?: {
         age: number;
         location: string;
         bio?: string;
         main_photo?: string;
+        phone?: string;
+        photos?: Array<{
+            id: number;
+            photo_url: string;
+            is_main: boolean;
+        }>;
     };
     sports?: Sport[];
     friendship_status?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
+    availability_schedules?: AvailabilitySchedule[];
     distance?: number;
 }
 
@@ -54,6 +69,28 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     const [selectedSkillLevel, setSelectedSkillLevel] = useState(filters.skill_level || '');
     const [selectedDistance, setSelectedDistance] = useState(filters.max_distance || '');
 
+    // Modal state
+    const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Local partners state for optimistic updates
+    const [localPartners, setLocalPartners] = useState(partners);
+
+    // Update local partners when partners prop changes
+    React.useEffect(() => {
+        setLocalPartners(partners);
+    }, [partners]);
+
+    // Sync selectedPartner with localPartners changes
+    React.useEffect(() => {
+        if (selectedPartner) {
+            const updatedPartner = localPartners.find(p => p.id === selectedPartner.id);
+            if (updatedPartner) {
+                setSelectedPartner(updatedPartner);
+            }
+        }
+    }, [localPartners, selectedPartner?.id]);
+
     // Funkcija, kas izsauc servera pieprasījumu ar atlasītajiem filtriem
     const handleSearch = () => {
         router.get('/partners', {
@@ -73,25 +110,79 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
         setSearchTerm('');
         setSelectedSport('');
         setSelectedSkillLevel('');
-        // setSelectedDistance('');
         router.get('/partners', {}, {
             preserveState: true,
             preserveScroll: true,
         });
     };
 
-    const visiblePartners = partners.filter(
+    const visiblePartners = localPartners.filter(
         (partner) => partner.friendship_status === 'none' || partner.friendship_status === 'pending_sent'
     );
+
     const sendFriendRequest = (partnerId: number) => {
+        // Optimistically update both local partners list and selected partner
+        setLocalPartners(prev =>
+            prev.map(partner =>
+                partner.id === partnerId
+                    ? { ...partner, friendship_status: 'pending_sent' as const }
+                    : partner
+            )
+        );
+
+        if (selectedPartner && selectedPartner.id === partnerId) {
+            setSelectedPartner(prev => prev ? {
+                ...prev,
+                friendship_status: 'pending_sent'
+            } : null);
+        }
+
+        // Send the actual request
         router.post(`/friends/request/${partnerId}`, {}, {
             preserveScroll: true,
+            onError: (errors) => {
+                // Revert the optimistic update on error
+                setLocalPartners(prev =>
+                    prev.map(partner =>
+                        partner.id === partnerId
+                            ? { ...partner, friendship_status: 'none' as const }
+                            : partner
+                    )
+                );
+
+                if (selectedPartner && selectedPartner.id === partnerId) {
+                    setSelectedPartner(prev => prev ? {
+                        ...prev,
+                        friendship_status: 'none'
+                    } : null);
+                }
+                console.error('Friend request failed:', errors);
+            }
         });
     };
 
+    const openPartnerModal = (partner: Partner) => {
+        // Find the current partner state from local partners (with optimistic updates)
+        const currentPartner = localPartners.find(p => p.id === partner.id) || partner;
+        setSelectedPartner(currentPartner);
+        setIsModalOpen(true);
+    };
+
+    const closePartnerModal = () => {
+        setIsModalOpen(false);
+        setSelectedPartner(null);
+    };
+
+    const startChat = (partnerId: number) => {
+        router.visit(`/chat/${partnerId}`);
+    };
 
     const getFriendshipButton = (partner: Partner) => {
-        switch (partner.friendship_status) {
+        // Find the current status from local state
+        const currentPartner = localPartners.find(p => p.id === partner.id);
+        const currentStatus = currentPartner?.friendship_status || partner.friendship_status;
+
+        switch (currentStatus) {
             case 'pending_sent':
                 return (
                     <div className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
@@ -170,19 +261,14 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         Sporta veids
                                     </label>
                                     <select
-                                        // saglabā izvēlēto sporta veidu komponenta state
                                         value={selectedSport}
-                                        // atjauno izvēlēto vērtību pēc lietotāja izvēles
                                         onChange={(e) => setSelectedSport(e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                                     >
-                                        {/* Noklusējuma opcija, lai parādītu visus sporta veidus */}
                                         <option value="">Visi sporta veidi</option>
-
-                                        {/* Dinamiski izveido opciju sarakstu no sporta veidu masīva */}
                                         {sports.map(sport => (
                                             <option key={sport.id} value={sport.id}>
-                                                {sport.icon} {sport.name} {/* Ikona + sporta nosaukums */}
+                                                {sport.icon} {sport.name}
                                             </option>
                                         ))}
                                     </select>
@@ -202,22 +288,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         <option value="advanced">Pieredzējis</option>
                                     </select>
                                 </div>
-                                {/*<div>*/}
-                                {/*    <label className="block text-sm font-medium text-gray-700 mb-2">*/}
-                                {/*        Attālums (km)*/}
-                                {/*    </label>*/}
-                                {/*    <select*/}
-                                {/*        value={selectedDistance}*/}
-                                {/*        onChange={(e) => setSelectedDistance(e.target.value)}*/}
-                                {/*        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"*/}
-                                {/*    >*/}
-                                {/*        <option value="">Jebkurš attālums</option>*/}
-                                {/*        <option value="5">5 km</option>*/}
-                                {/*        <option value="10">10 km</option>*/}
-                                {/*        <option value="25">25 km</option>*/}
-                                {/*        <option value="50">50 km</option>*/}
-                                {/*    </select>*/}
-                                {/*</div>*/}
                             </div>
                             <div className="mt-4 flex justify-between">
                                 <button
@@ -243,14 +313,17 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                         visiblePartners.map(partner => (
                             <div key={partner.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all">
                                 {/* Profile Image Section */}
-                                <div className="relative h-48 bg-gray-100">
+                                <div
+                                    className="relative h-48 bg-gray-100 cursor-pointer group"
+                                    onClick={() => openPartnerModal(partner)}
+                                >
                                     {partner.profile?.main_photo ? (
                                         <img
                                             src={typeof partner.profile.main_photo === 'string'
                                                 ? partner.profile.main_photo
                                                 : (partner.profile.main_photo as any)?.url || (partner.profile.main_photo as any)?.photo_url || ''}
                                             alt={`${partner.name} ${partner.lastname || ''}`}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             onError={(e) => {
                                                 console.error('Image failed to load:', partner.profile?.main_photo);
                                                 e.currentTarget.style.display = 'none';
@@ -266,6 +339,10 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                             {partner.distance} km
                                         </div>
                                     )}
+                                    {/* View Profile Overlay */}
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:scale-105 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                                        <span className="text-white font-medium">Skatīt profilu</span>
+                                    </div>
                                 </div>
 
                                 <div className="p-4">
@@ -322,23 +399,34 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                             </div>
                         ))
                     ) : (
-                        /* Empty State */
-                        <div className="col-span-full text-center py-16">
-                            <Search className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-medium text-gray-900 mb-2">Nav atrasti partneri</h3>
-                            <p className="text-gray-600 mb-6">
-                                Izmēģini mainīt meklēšanas kritērijus vai filtrus
-                            </p>
-                            <button
-                                onClick={clearFilters}
-                                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                            >
-                                Notīrīt filtrus
-                            </button>
-                        </div>
+
+                    <div className="col-span-full text-center py-16">
+                        <Search className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-medium text-gray-900 mb-2">Nav atrasti partneri</h3>
+                        <p className="text-gray-600 mb-6">
+                            Izmēģini mainīt meklēšanas kritērijus vai filtrus
+                        </p>
+                        <button
+                            onClick={clearFilters}
+                            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                        >
+                            Notīrīt filtrus
+                        </button>
+                    </div>
                     )}
                 </div>
             </div>
+
+            {/* Partner Profile Modal */}
+            {selectedPartner && (
+                <PartnerProfileModal
+                    partner={selectedPartner}
+                    isOpen={isModalOpen}
+                    onClose={closePartnerModal}
+                    onSendFriendRequest={sendFriendRequest}
+                    onStartChat={startChat}
+                />
+            )}
         </div>
     );
 }

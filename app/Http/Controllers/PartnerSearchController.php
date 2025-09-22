@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Friendship;
 use App\Models\Sport;
 use App\Models\UserProfilePhoto;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -16,11 +17,14 @@ class PartnerSearchController extends Controller
     {
         $user = Auth::user();
 
-        // Build query with filters
         $query = User::where('id', '!=', $user->id)
-            ->with(['profile', 'sports']);
+            ->with([
+                'profile.photos',
+                'sports',
+                'availabilitySchedules'
+            ]);
 
-        // Search filter
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -32,41 +36,53 @@ class PartnerSearchController extends Controller
             });
         }
 
-        // Sport filter
+
         if ($request->filled('sport')) {
             $query->whereHas('sports', function($q) use ($request) {
                 $q->where('sports.id', $request->sport);
             });
         }
 
-        // Skill level filter
         if ($request->filled('skill_level')) {
             $query->whereHas('sports', function($q) use ($request) {
                 $q->where('user_sports.skill_level', $request->skill_level);
             });
         }
 
-        // Get all partners with filters applied
+
         $partners = $query->get()->map(function($partner) use ($user) {
-            // Get main photo for each partner
+
             if ($partner->profile) {
-                // Get the main photo directly from database
-                $mainPhoto = UserProfilePhoto::where('user_profile_id', $partner->profile->id)
+
+                $mainPhoto = $partner->profile->photos()
                     ->where('is_main', true)
                     ->first();
 
-                // Set main_photo as string URL, not object
                 if ($mainPhoto) {
                     $partner->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
                 } else {
                     $partner->profile->main_photo = null;
                 }
 
-                // Make sure age is included
+                $partner->profile->photos = $partner->profile->photos->map(function($photo) {
+                    return [
+                        'id' => $photo->id,
+                        'photo_url' => '/storage/' . $photo->photo_path,
+                        'is_main' => $photo->is_main
+                    ];
+                });
+
                 $partner->profile->age = $partner->profile->age;
             }
 
-            // Check friendship status
+            $partner->availability_schedules = $partner->availabilitySchedules->map(function($schedule) {
+                return [
+                    'day_of_week' => $schedule->day_of_week,
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time
+                ];
+            });
+
             $sentFriendship = Friendship::where('sender_id', $user->id)
                 ->where('receiver_id', $partner->id)
                 ->first();
@@ -94,7 +110,6 @@ class PartnerSearchController extends Controller
             return $partner;
         });
 
-        // Get all active sports for filter dropdown
         $sports = Sport::where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'icon']);
@@ -112,7 +127,6 @@ class PartnerSearchController extends Controller
         $user = Auth::user();
         $receiver = User::findOrFail($receiverId);
 
-        // Check if friendship already exists
         $exists = Friendship::where(function($q) use ($user, $receiver) {
             $q->where('sender_id', $user->id)
                 ->where('receiver_id', $receiver->id);
@@ -128,6 +142,7 @@ class PartnerSearchController extends Controller
                 'status' => 'pending'
             ]);
         }
+        NotificationService::friendRequest($user, $receiver);
 
         return back()->with('success', 'Draudzības pieprasījums nosūtīts!');
     }

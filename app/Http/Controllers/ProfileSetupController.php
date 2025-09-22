@@ -76,10 +76,10 @@ class ProfileSetupController extends Controller
 
 
         DB::transaction(function () use ($user, $sportsData) {
-            // Dzēš esošos sporta veidus
+
             $user->userSports()->delete();
 
-            // Pievieno jaunos
+
             foreach ($sportsData as $sportData) {
                 UserSport::create([
                     'user_id' => $user->id,
@@ -94,7 +94,7 @@ class ProfileSetupController extends Controller
             ->with('success', 'Sporta veidi saglabāti!');
     }
 
-    // Solis 3: Grafiks (pagaidām vienkārš)
+    // Solis 3: Grafiks
     public function step3(): Response
     {
         $user = Auth::user();
@@ -110,17 +110,17 @@ class ProfileSetupController extends Controller
     }
 
 
-    // Saglabā 3. soli (pagaidām tukš)
+    // Saglabā 3. soli
     public function storeStep3(ProfileStep3Request $request)
     {
         $user = Auth::user();
         $scheduleData = $request->validated()['schedule'] ?? [];
 
         DB::transaction(function () use ($user, $scheduleData) {
-            // Dzēš esošo grafiku
+
             $user->availabilitySchedules()->delete();
 
-            // Pievieno jauno grafiku
+
             foreach ($scheduleData as $dayData) {
                 AvailabilitySchedule::create([
                     'user_id' => $user->id,
