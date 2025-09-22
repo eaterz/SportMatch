@@ -83,7 +83,6 @@ export default function GroupsIndex({ user, myGroups = [], publicGroups, sports 
     };
 
     const renderMyGroupCard = (group: Group) => {
-        // Pārbauda vai lietotājs ir grupas izveidotājs vai admins
         const isCreator = group.creator?.id === user.id;
         const isAdmin = group.is_admin || isCreator;
 

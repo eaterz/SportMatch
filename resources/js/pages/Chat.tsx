@@ -270,7 +270,7 @@ export default function Chat({
 
             {/* Friends Sidebar */}
             <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-                {/* Header */}
+
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-gray-900 mb-4">Čati</h2>
@@ -278,9 +278,9 @@ export default function Chat({
                             href="/friends"
                             className="group flex items-center mb-4 gap-3 rounded-2xl bg-white  transition-all duration-300 px-4 py-3"
                         >
-                            {/* Default closed door */}
+
                             <DoorClosed className="h-7 w-7 text-gray-600 group-hover:hidden" />
-                            {/* Opens on hover */}
+
                             <DoorOpen className="h-7 w-7 text-black hidden group-hover:block" />
 
                         </a>
@@ -358,7 +358,6 @@ export default function Chat({
             {/* Chat Area */}
             {currentFriend ? (
                 <div className="flex-1 flex flex-col">
-                    {/* Chat Header */}
                     <div className="bg-white border-b border-gray-200 p-4 flex items-center">
                         <button
                             onClick={() => router.get('/friends')}

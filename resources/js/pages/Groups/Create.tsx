@@ -40,7 +40,6 @@ export default function GroupsCreate({ sports = [] }: Props) {
         formData.append('max_members', data.max_members);
         formData.append('is_private', data.is_private ? '1' : '0');
 
-        // Pievieno sporta veidus
         data.sports.forEach((sport, index) => {
             formData.append(`sports[${index}][id]`, sport.id.toString());
             formData.append(`sports[${index}][skill_level]`, sport.skill_level);
@@ -59,8 +58,6 @@ export default function GroupsCreate({ sports = [] }: Props) {
         const file = e.target.files?.[0];
         if (file) {
             setData('cover_photo', file);
-
-            // Izveido priekšskatījumu
             const reader = new FileReader();
             reader.onload = (e) => {
                 setCoverPhotoPreview(e.target?.result as string);

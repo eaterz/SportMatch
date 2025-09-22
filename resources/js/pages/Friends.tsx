@@ -56,13 +56,11 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
     const [searchTerm, setSearchTerm] = useState('');
     const [friendSettingsOpen, setFriendSettingsOpen] = useState<number | null>(null);
 
-    // Filter friends based on search
     const filteredFriends = friends.filter(friend =>
         `${friend.name} ${friend.lastname || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         friend.profile?.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Friend request actions
     const acceptRequest = (senderId: number) => {
         router.post(`/friends/accept/${senderId}`, {}, {
             preserveScroll: true,
@@ -91,7 +89,6 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
     };
 
     const startChat = (friendId: number) => {
-        // TODO: Implement chat functionality
         router.get(`/chat/${friendId}`);
     };
 
@@ -188,10 +185,6 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
             )}
         </div>
     );
-
-
-
-
 
     // Render pending request row
     const renderPendingRow = (friend: Friend, type: 'received' | 'sent') => (

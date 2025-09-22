@@ -68,12 +68,8 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     const [selectedSport, setSelectedSport] = useState(filters.sport || '');
     const [selectedSkillLevel, setSelectedSkillLevel] = useState(filters.skill_level || '');
     const [selectedDistance, setSelectedDistance] = useState(filters.max_distance || '');
-
-    // Modal state
     const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // Local partners state for optimistic updates
     const [localPartners, setLocalPartners] = useState(partners);
 
     // Update local partners when partners prop changes
@@ -91,16 +87,14 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
         }
     }, [localPartners, selectedPartner?.id]);
 
-    // Funkcija, kas izsauc servera pieprasījumu ar atlasītajiem filtriem
+
     const handleSearch = () => {
         router.get('/partners', {
-            // Parametri, kas tiek nodoti serverim
-            search: searchTerm,             // Meklēšana pēc vārda vai lokācijas
-            sport: selectedSport,           // Atlasītais sporta veids
-            skill_level: selectedSkillLevel, // Prasmju līmenis
-            max_distance: selectedDistance, // Attāluma ierobežojums
+            search: searchTerm,
+            sport: selectedSport,
+            skill_level: selectedSkillLevel,
+            max_distance: selectedDistance,
         }, {
-            // Saglabā esošo stāvokli un scroll pozīciju pēc pieprasījuma
             preserveState: true,
             preserveScroll: true,
         });
@@ -162,7 +156,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     };
 
     const openPartnerModal = (partner: Partner) => {
-        // Find the current partner state from local partners (with optimistic updates)
         const currentPartner = localPartners.find(p => p.id === partner.id) || partner;
         setSelectedPartner(currentPartner);
         setIsModalOpen(true);
@@ -178,7 +171,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     };
 
     const getFriendshipButton = (partner: Partner) => {
-        // Find the current status from local state
         const currentPartner = localPartners.find(p => p.id === partner.id);
         const currentStatus = currentPartner?.friendship_status || partner.friendship_status;
 
@@ -210,7 +202,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
             <Navbar user={user}/>
 
             <div className="max-w-7xl mx-auto px-4 py-8">
-                {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Meklēt sporta partnerus</h1>
                     <p className="text-gray-600">Atrodi cilvēkus ar līdzīgām sporta interesēm</p>

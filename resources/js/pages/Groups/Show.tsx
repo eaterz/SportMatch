@@ -121,7 +121,6 @@ export default function GroupsShow({
         post_id: null as number | null,
     });
 
-    // Echo service for real-time updates
     useEffect(() => {
         if (!pusherKey) return;
 
@@ -129,7 +128,6 @@ export default function GroupsShow({
             try {
                 await echoService.initialize(pusherKey, pusherCluster);
 
-                // Listen to group events
                 echoService.listenToGroup(group.id, {
                     onPostCreated: (e: { post: Post }) => {
                         setPosts(prev => [e.post, ...prev]);
@@ -172,7 +170,6 @@ export default function GroupsShow({
         initializeGroupWebSocket();
 
         return () => {
-            // Leave group channel when component unmounts
             echoService.leaveChannel(`group.${group.id}`);
         };
     }, [group.id, pusherKey, pusherCluster]);

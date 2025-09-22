@@ -111,11 +111,11 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
         <div className="min-h-screen bg-gray-50">
             <Head title="Dashboard - SportMatch" />
 
-            {/* Use Navbar Component */}
+
             <Navbar user={user} />
 
             <div className="max-w-4xl mx-auto px-4 py-8">
-                {/* Welcome Section */}
+
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                         Sveiks, {user.name}!
@@ -127,7 +127,7 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
 
                 {/* Main Actions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {/* Create Group Card */}
+
                     <div className="bg-white rounded-lg shadow-sm p-6">
                         <div className="text-center">
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

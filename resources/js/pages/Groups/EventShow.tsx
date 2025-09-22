@@ -101,7 +101,6 @@ export default function EventShow({ user, group, event, participants }: Props) {
     const deleteEvent = () => {
         router.delete(`/groups/${group.id}/events/${event.id}`, {
             onSuccess: () => {
-                // Will redirect automatically
             }
         });
     };
