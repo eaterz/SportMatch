@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('gender', ['male', 'female']);
             $table->text('bio')->nullable(); // Īss apraksts par sevi
             $table->string('location')->nullable(); // Pilsēta/rajons
+            $table->boolean('verified')->default(false);
             $table->timestamps();
 
             $table->unique('user_id');

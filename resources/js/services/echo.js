@@ -38,6 +38,18 @@ class EchoService {
         }
     }
 
+    listenToNotifications(userId, callback) {
+        if (!this.echo) {
+            throw new Error('Echo not initialized');
+        }
+
+        this.echo.private(`notifications.${userId}`)
+            .listen('.notification.sent', (e) => {
+                console.log('New notification received:', e);
+                callback(e);
+            });
+    }
+
     // Chat methods
     listenToChat(userId, onMessage) {
         if (!this.echo) {

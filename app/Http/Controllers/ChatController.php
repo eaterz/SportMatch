@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Message;
 use App\Models\UserProfilePhoto;
 use App\Events\MessageSent;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Get all friends (from both sender and receiver relationships)
+
         $friendsAsSender = User::join('friendships', 'users.id', '=', 'friendships.receiver_id')
             ->where('friendships.sender_id', $user->id)
             ->where('friendships.status', 'accepted')
@@ -36,7 +37,7 @@ class ChatController extends Controller
         $allFriends = $friendsAsSender->merge($friendsAsReceiver)->unique('id');
 
         $friends = $allFriends->map(function($friend) use ($user) {
-            // Get main photo
+
             if ($friend->profile) {
                 $mainPhoto = UserProfilePhoto::where('user_profile_id', $friend->profile->id)
                     ->where('is_main', true)
@@ -47,12 +48,12 @@ class ChatController extends Controller
                 }
             }
 
-            // Get last message
+
             $lastMessage = Message::betweenUsers($user->id, $friend->id)
                 ->latest()
                 ->first();
 
-            // Get unread count
+
             $unreadCount = Message::where('sender_id', $friend->id)
                 ->where('receiver_id', $user->id)
                 ->whereNull('read_at')
@@ -80,15 +81,14 @@ class ChatController extends Controller
         $messages = [];
         $selectedFriend = null;
 
-        // If a friend is selected, load their conversation
+
         if ($friend && $user->isFriendWith($friend)) {
-            // Mark messages as read
             Message::where('sender_id', $friend->id)
                 ->where('receiver_id', $user->id)
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);
 
-            // Get conversation messages
+
             $messages = Message::betweenUsers($user->id, $friend->id)
                 ->with(['sender', 'receiver'])
                 ->orderBy('created_at', 'asc')
@@ -104,7 +104,7 @@ class ChatController extends Controller
                     ];
                 });
 
-            // Get friend's main photo
+
             if ($friend->profile) {
                 $mainPhoto = UserProfilePhoto::where('user_profile_id', $friend->profile->id)
                     ->where('is_main', true)
@@ -152,6 +152,8 @@ class ChatController extends Controller
                 auth()->id(),
                 $friend->id
             ));
+
+            NotificationService::newMessage(auth()->user(), $friend, $request->message);
 
 
             return response()->json([

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Friendship;
 use App\Models\UserProfilePhoto;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -85,7 +86,6 @@ class FriendsController extends Controller
                         $receiver->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
                     }
                 }
-
                 return $receiver;
             });
 
@@ -115,6 +115,7 @@ class FriendsController extends Controller
 
             return back()->with('success', 'Draudzības pieprasījums pieņemts!');
         }
+        NotificationService::friendRequestAccepted($user, User::find($senderId));
 
         return back()->with('error', 'Pieprasījums nav atrasts');
     }

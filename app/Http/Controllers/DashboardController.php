@@ -13,7 +13,6 @@ class DashboardController
     {
         $user = Auth::user()->load(['profile', 'sports']);
 
-        // Get user's groups (where they are a member or creator)
         $myGroups = Group::where('creator_id', $user->id)
             ->orWhereHas('members', function($q) use ($user) {
                 $q->where('user_id', $user->id)
@@ -25,7 +24,6 @@ class DashboardController
             ->withCount(['approvedMembers'])
             ->get()
             ->map(function($group) use ($user) {
-                // Add user's role in this group
                 if ($group->creator_id === $user->id) {
                     $group->pivot = (object) ['role' => 'admin'];
                 } else {
@@ -37,7 +35,6 @@ class DashboardController
                 return $group;
             });
 
-        // Get upcoming events from user's groups
         $upcomingEvents = GroupEvent::whereHas('group.members', function($q) use ($user) {
             $q->where('user_id', $user->id)
                 ->where('status', 'approved');
@@ -53,7 +50,6 @@ class DashboardController
             ->limit(5)
             ->get()
             ->map(function($event) {
-                // Rename title to name for frontend compatibility
                 $event->name = $event->title;
                 return $event;
             });
