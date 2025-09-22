@@ -31,7 +31,6 @@ class Message extends Model
         return $this->belongsTo(User::class, 'receiver_id');
     }
 
-    // Scopes
     public function scopeUnread($query)
     {
         return $query->whereNull('read_at');
@@ -46,7 +45,6 @@ class Message extends Model
         });
     }
 
-    // Mark as read
     public function markAsRead(): void
     {
         if (!$this->read_at) {
@@ -54,7 +52,6 @@ class Message extends Model
         }
     }
 
-    // Check if message is read
     public function isRead(): bool
     {
         return !is_null($this->read_at);

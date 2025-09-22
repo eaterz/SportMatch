@@ -32,26 +32,22 @@ class UserProfile extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Photos relationship - all photos
     public function photos(): HasMany
     {
         return $this->hasMany(UserProfilePhoto::class, 'user_profile_id', 'id');
     }
 
-    // Get main photo only
     public function mainPhoto()
     {
         return $this->hasOne(UserProfilePhoto::class)->where('is_main', true);
     }
 
-    // Get main photo URL attribute
     public function getMainPhotoAttribute()
     {
         $photo = $this->photos()->where('is_main', true)->first();
         return $photo ? asset('storage/' . $photo->photo_path) : null;
     }
 
-    // Get all photo URLs
     public function getPhotoUrlsAttribute()
     {
         return $this->photos->map(function($photo) {
@@ -63,7 +59,6 @@ class UserProfile extends Model
         });
     }
 
-    // Calculate age
     public function getAgeAttribute(): ?int
     {
         return $this->birth_date
@@ -71,7 +66,6 @@ class UserProfile extends Model
             : null;
     }
 
-    // Check if profile is complete
     public function getIsCompleteAttribute(): bool
     {
         return !is_null($this->birth_date)

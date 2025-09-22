@@ -105,7 +105,7 @@ class MessageController extends Controller
                         'is_sender' => $lastMessage->sender_id === $user->id
                     ] : null,
                     'unread_count' => $unreadCount,
-                    'is_online' => false // You can implement online status later
+                    'is_online' => false
                 ];
             });
 

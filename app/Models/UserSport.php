@@ -31,7 +31,6 @@ class UserSport extends Model
         return $this->belongsTo(Sport::class);
     }
 
-    // Prasmes līmeņa tulkojums
     public function getSkillLevelLabelAttribute(): string
     {
         return match($this->skill_level) {
