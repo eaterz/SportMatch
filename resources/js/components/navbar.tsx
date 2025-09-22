@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { Trophy, Search, Users, User, ChevronDown, LogOut, Settings, UserSearch, Menu, X } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+import config from '../config';
 
 interface User {
     id: number;
@@ -34,6 +36,8 @@ export default function Navbar({ user }: Props) {
                         <span className="text-xl font-bold text-gray-900">SportMatch</span>
                     </Link>
 
+
+
                     {/* Desktop Navigation Links */}
                     <div className="hidden md:flex items-center space-x-6">
                         <Link
@@ -43,6 +47,7 @@ export default function Navbar({ user }: Props) {
                             <Search className="w-4 h-4" />
                             <span>Meklēt grupas</span>
                         </Link>
+
 
                         <Link
                             href="/partners"
@@ -59,6 +64,12 @@ export default function Navbar({ user }: Props) {
                             <Users className="w-4 h-4" />
                             <span>Draugi</span>
                         </Link>
+
+                        <NotificationBell
+                            userId={user.id}
+                            pusherKey={config.pusherKey}
+                            pusherCluster={config.pusherCluster}
+                        />
 
                         {/* Desktop Profile Dropdown */}
                         <div className="relative">

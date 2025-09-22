@@ -4,6 +4,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\GroupsController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PartnerSearchController;
@@ -12,14 +13,14 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 
-
+//Welcome
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
 
-
-Route::middleware('auth')
+    //Profile Setup
+    Route::middleware('auth')
     ->prefix('profile/setup')
     ->name('profile.setup.')
     ->controller(ProfileSetupController::class)
@@ -37,15 +38,13 @@ Route::middleware('auth')
         Route::post('/step-4', 'storeStep4')->name('step4.store');
     });
 
-
+//Authenticated Routes
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
-
-
+    //Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-
-
+    //Partner Search
     Route::controller(PartnerSearchController::class)
         ->prefix('partners')
         ->name('partners.')
@@ -54,7 +53,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
 
-
+    //Friends
     Route::controller(FriendsController::class)
         ->prefix('friends')
         ->name('friends.')
@@ -73,7 +72,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
 
-
+    //Chat
     Route::controller(ChatController::class)
         ->prefix('chat')
         ->name('chat.')
@@ -86,7 +85,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
 
 
-
+    //Profile
     Route::controller(ProfileController::class)
         ->prefix('profile')
         ->name('profile.')
@@ -105,7 +104,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
 
-
+    //Groups
     Route::controller(GroupsController::class)
         ->prefix('groups')
         ->name('groups.')
@@ -113,6 +112,14 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/', 'search')->name('search');
             Route::post('/create', 'create')->name('create');
         });
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
 
     Route::controller(GroupsController::class)
         ->prefix('groups')
