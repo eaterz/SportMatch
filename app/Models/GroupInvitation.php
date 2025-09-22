@@ -22,33 +22,21 @@ class GroupInvitation extends Model
         'responded_at' => 'datetime'
     ];
 
-    /**
-     * Get the group this invitation belongs to.
-     */
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
     }
 
-    /**
-     * Get the user who sent the invitation.
-     */
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');
     }
 
-    /**
-     * Get the user who was invited.
-     */
     public function invitee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_user');
     }
 
-    /**
-     * Accept the invitation.
-     */
     public function accept(): void
     {
         $this->update([
@@ -60,9 +48,6 @@ class GroupInvitation extends Model
         $this->group->addMember($this->invitee, 'approved');
     }
 
-    /**
-     * Decline the invitation.
-     */
     public function decline(): void
     {
         $this->update([
@@ -71,41 +56,26 @@ class GroupInvitation extends Model
         ]);
     }
 
-    /**
-     * Check if invitation is still pending.
-     */
     public function isPending(): bool
     {
         return $this->status === 'pending';
     }
 
-    /**
-     * Check if invitation was accepted.
-     */
     public function isAccepted(): bool
     {
         return $this->status === 'accepted';
     }
 
-    /**
-     * Check if invitation was declined.
-     */
     public function isDeclined(): bool
     {
         return $this->status === 'declined';
     }
 
-    /**
-     * Scope for pending invitations.
-     */
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
     }
 
-    /**
-     * Scope for a specific user's invitations.
-     */
     public function scopeForUser($query, $userId)
     {
         return $query->where('invited_user', $userId);

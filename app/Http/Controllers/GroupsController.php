@@ -13,6 +13,7 @@ use App\Models\GroupPostComment;
 use App\Models\Sport;
 use App\Models\User;
 use App\Models\UserProfilePhoto;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -153,18 +154,18 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-        // Load creator + sports
+
         $group->load(['creator', 'sports']);
         $group->loadCount('approvedMembers');
 
-        // Membership flags
+
         $group->is_member = $group->isMember($user);
         $group->is_admin = $group->isAdmin($user);
         $group->has_pending_request = $group->pendingMembers()
             ->where('user_id', $user->id)
             ->exists();
 
-        // Fetch members for preview
+
         $approvedMembers = $group->approvedMembers()
             ->with('profile')
             ->take(10)
@@ -181,7 +182,7 @@ class GroupsController extends Controller
                 return $member;
             });
 
-        // Posts
+
         $posts = $group->posts()
             ->with([
                 'user.profile',
@@ -220,7 +221,7 @@ class GroupsController extends Controller
                 return $post;
             });
 
-        // Events
+
         $upcomingEvents = $group->upcomingEvents()
             ->with('creator')
             ->withCount('confirmedParticipants')
@@ -296,7 +297,6 @@ class GroupsController extends Controller
             ->withPivot(['role', 'joined_at'])
             ->get()
             ->map(function($member) {
-                // Pievieno profila bildi
                 if ($member->profile) {
                     $mainPhoto = UserProfilePhoto::where('user_profile_id', $member->profile->id)
                         ->where('is_main', true)
@@ -360,7 +360,6 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is a member
         if (!$group->isMember($user)) {
             return back()->with('error', 'Tikai grupas dalībnieki var publicēt ierakstus');
         }
@@ -378,16 +377,15 @@ class GroupsController extends Controller
             'is_announcement' => $request->input('is_announcement', false) && $group->isAdmin($user)
         ]);
 
-        // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('group-posts', 'public');
             $post->update(['image' => $path]);
         }
 
-        // Load relationships for broadcasting
+
         $post->load(['user.profile']);
 
-        // Broadcast event
+
         broadcast(new GroupPostCreated($post))->toOthers();
 
         return back()->with('success', 'Ieraksts publicēts!');
@@ -398,12 +396,12 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is a member
+
         if (!$group->isMember($user)) {
             return back()->with('error', 'Nav tiesību');
         }
 
-        // Verify post belongs to this group
+
         if ($post->group_id !== $group->id) {
             return back()->with('error', 'Ieraksts nav no šīs grupas');
         }
@@ -414,7 +412,7 @@ class GroupsController extends Controller
             $post->addLike($user);
         }
 
-        // Broadcast event
+
         broadcast(new GroupPostLiked($post, $user))->toOthers();
 
         return back();
@@ -425,12 +423,12 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is a member
+
         if (!$group->isMember($user)) {
             return back()->with('error', 'Nav tiesību');
         }
 
-        // Verify post belongs to this group
+
         if ($post->group_id !== $group->id) {
             return back()->with('error', 'Ieraksts nav no šīs grupas');
         }
@@ -444,14 +442,15 @@ class GroupsController extends Controller
             'user_id' => $user->id,
             'content' => $request->input('content')
         ]);
+        NotificationService::groupPostComment($comment, $post, $group);
 
-        // Update comments count
+
         $post->increment('comments_count');
 
-        // Load relationships for broadcasting
+
         $comment->load(['user.profile']);
 
-        // Broadcast event
+
         broadcast(new GroupCommentAdded($comment, $group))->toOthers();
 
         return back()->with('success', 'Komentārs pievienots!');
@@ -462,26 +461,25 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-        // Check permissions - only post author or group admin can delete
+
         if ($post->user_id !== $user->id && !$group->isAdmin($user)) {
             return back()->with('error', 'Nav tiesību dzēst šo ierakstu');
         }
 
-        // Verify post belongs to this group
         if ($post->group_id !== $group->id) {
             return back()->with('error', 'Ieraksts nav no šīs grupas');
         }
 
         $postId = $post->id;
 
-        // Delete image if exists
+
         if ($post->image) {
             Storage::disk('public')->delete($post->image);
         }
 
         $post->delete();
 
-        // Broadcast post deletion
+
         broadcast(new GroupPostDeleted($postId, $group->id))->toOthers();
 
         return back()->with('success', 'Ieraksts dzēsts');
@@ -554,7 +552,7 @@ class GroupsController extends Controller
             'description' => 'nullable|string|max:1000',
             'location' => 'required|string|max:200',
             'event_date' => 'required|date|after:now',
-            'duration' => 'nullable|numeric|min:0.5|max:12', // Changed from time format to numeric
+            'duration' => 'nullable|numeric|min:0.5|max:12',
             'max_participants' => 'nullable|integer|min:2|max:200',
             'price' => 'nullable|numeric|min:0|max:999.99',
             'is_recurring' => 'boolean',
@@ -576,7 +574,9 @@ class GroupsController extends Controller
             'status' => 'upcoming'
         ]);
 
-        // Automatically add creator as participant
+        NotificationService::groupEventCreated($event, $group, $user->id);
+
+
         $event->addParticipant($user, 'going');
 
         return redirect()->route('groups.events.show', [$group, $event])
@@ -592,7 +592,7 @@ class GroupsController extends Controller
             return back()->with('error', 'Tikai grupas dalībnieki var redzēt pasākumu detaļas');
         }
 
-        // Verify event belongs to this group
+
         if ($event->group_id !== $group->id) {
             return back()->with('error', 'Pasākums nav no šīs grupas');
         }
@@ -600,12 +600,12 @@ class GroupsController extends Controller
         $event->load(['creator', 'confirmedParticipants.profile']);
         $event->loadCount('confirmedParticipants');
 
-        // Add user status
+
         $event->is_participating = $event->isParticipating($user);
         $event->is_creator = $event->creator_id === $user->id;
         $event->can_edit = $event->creator_id === $user->id || $group->isAdmin($user);
 
-        // Get participants with photos
+
         $participants = $event->confirmedParticipants->map(function($participant) {
             if ($participant->profile) {
                 $mainPhoto = UserProfilePhoto::where('user_profile_id', $participant->profile->id)
@@ -700,7 +700,7 @@ class GroupsController extends Controller
             'description' => 'nullable|string|max:1000',
             'location' => 'required|string|max:200',
             'event_date' => 'required|date|after:now',
-            'duration' => 'nullable|numeric|min:0.5|max:12', // Changed from time format to numeric
+            'duration' => 'nullable|numeric|min:0.5|max:12',
             'max_participants' => 'nullable|integer|min:2|max:200',
             'price' => 'nullable|numeric|min:0|max:999.99',
             'is_recurring' => 'boolean',
@@ -732,7 +732,6 @@ class GroupsController extends Controller
             return back()->with('error', 'Nav tiesību rediģēt šo pasākumu');
         }
 
-        // Load the participant count
         $event->loadCount('confirmedParticipants');
 
         return Inertia::render('Groups/EditEvent', [
@@ -775,7 +774,6 @@ class GroupsController extends Controller
         $group->load(['creator', 'sports']);
         $sports = Sport::where('is_active', true)->get();
 
-        // Get member statistics
         $memberStats = [
             'total_members' => $group->approvedMembers()->count(),
             'pending_members' => $group->pendingMembers()->count(),
@@ -813,7 +811,7 @@ class GroupsController extends Controller
             'cover_photo' => 'nullable|image|max:5120'
         ]);
 
-        // Update basic info
+
         $group->update([
             'name' => $request->input('name'),
             'description' => $request->input('description'),
@@ -822,9 +820,8 @@ class GroupsController extends Controller
             'is_private' => $request->input('is_private', false)
         ]);
 
-        // Handle cover photo
+
         if ($request->hasFile('cover_photo')) {
-            // Delete old cover photo
             if ($group->cover_photo) {
                 Storage::disk('public')->delete($group->cover_photo);
             }
@@ -833,7 +830,6 @@ class GroupsController extends Controller
             $group->update(['cover_photo' => $path]);
         }
 
-        // Update sports
         $group->sports()->detach();
         foreach ($request->input('sports') as $sport) {
             $group->sports()->attach($sport['id'], [
@@ -853,18 +849,15 @@ class GroupsController extends Controller
             return back()->with('error', 'Tikai grupas izveidotājs var dzēst grupu');
         }
 
-        // Delete cover photo
         if ($group->cover_photo) {
             Storage::disk('public')->delete($group->cover_photo);
         }
 
-        // Delete all group images from posts
         $posts = $group->posts()->whereNotNull('image')->get();
         foreach ($posts as $post) {
             Storage::disk('public')->delete($post->image);
         }
 
-        // Delete the group (cascade will handle related data)
         $group->delete();
 
         return redirect()->route('groups.index')

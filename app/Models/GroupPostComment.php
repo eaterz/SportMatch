@@ -16,17 +16,12 @@ class GroupPostComment extends Model
         'content'
     ];
 
-    /**
-     * Get the post that owns the comment.
-     */
     public function post(): BelongsTo
     {
         return $this->belongsTo(GroupPost::class, 'post_id');
     }
 
-    /**
-     * Get the user who made the comment.
-     */
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
