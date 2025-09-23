@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('sport_id')->constrained()->onDelete('cascade');
             $table->enum('skill_level', ['beginner', 'intermediate', 'advanced']); // Prasmes līmenis
-            $table->boolean()->default(false); // Vai tas ir galvenais sports
+            $table->boolean('verified')->default(false);
             $table->timestamps();
 
             $table->unique(['user_id', 'sport_id']);
