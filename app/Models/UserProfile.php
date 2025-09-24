@@ -23,6 +23,8 @@ class UserProfile extends Model
 
     protected $casts = [
         'birth_date' => 'date',
+        'is_verified' => 'boolean',
+        'verified_at' => 'datetime'
     ];
 
     protected $appends = ['age', 'main_photo'];
@@ -81,5 +83,35 @@ class UserProfile extends Model
         } else {
             $this->attributes['phone'] = null;
         }
+    }
+
+
+    /**
+     * Get verification status
+     */
+    public function getVerificationStatusAttribute(): array
+    {
+        return [
+            'is_verified' => $this->is_verified,
+            'verified_at' => $this->verified_at,
+            'method' => $this->verification_method
+        ];
+    }
+
+    /**
+     * Photo verification requests
+     */
+    public function photoVerificationRequests()
+    {
+        return $this->hasMany(PhotoVerificationRequest::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Latest verification request
+     */
+    public function latestVerificationRequest()
+    {
+        return $this->hasOne(PhotoVerificationRequest::class, 'user_id', 'user_id')
+            ->latest();
     }
 }

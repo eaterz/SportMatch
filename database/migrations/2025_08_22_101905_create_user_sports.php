@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreignId('sport_id')->constrained()->onDelete('cascade');
             $table->enum('skill_level', ['beginner', 'intermediate', 'advanced']);
             $table->boolean('is_preferred')->default(false);
-            $table->boolean('verified')->default(false);
             $table->timestamps();
 
             $table->unique(['user_id', 'sport_id']);
