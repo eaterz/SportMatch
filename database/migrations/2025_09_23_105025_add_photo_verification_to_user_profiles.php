@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::table('user_profiles', function (Blueprint $table) {
             $table->boolean('is_verified')->default(false)->after('location');
             $table->timestamp('verified_at')->nullable()->after('is_verified');
+            $table->string('verification_method')->nullable()->after('verified_at');
         });
     }
 

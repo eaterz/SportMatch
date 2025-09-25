@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PhotoVerificationController;
 use App\Http\Controllers\ProfileSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PartnerSearchController;
@@ -162,6 +163,19 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/{group}/settings', 'settings')->name('settings');
             Route::put('/{group}', 'update')->name('update');
             Route::delete('/{group}', 'destroy')->name('destroy');
+        });
+
+    // Add this inside your authenticated routes section
+    Route::controller(\App\Http\Controllers\PhotoVerificationController::class)
+        ->prefix('verification')
+        ->name('verification.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/start', 'start')->name('start');
+            Route::post('/submit', 'submit')->name('submit');
+            Route::get('/success', 'success')->name('success');
+            Route::get('/pending', 'pending')->name('pending');
+            Route::post('/cancel', 'cancel')->name('cancel');
         });
 
 });

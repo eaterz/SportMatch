@@ -69,6 +69,17 @@ class User extends Authenticatable
         return $this->sports()->wherePivot('is_preferred', true);
     }
 
+    // Verification relationships
+    public function verificationRequests(): HasMany
+    {
+        return $this->hasMany(PhotoVerificationRequest::class);
+    }
+
+    public function latestVerificationRequest(): HasOne
+    {
+        return $this->hasOne(PhotoVerificationRequest::class)->latest();
+    }
+
     public function getHasCompleteProfileAttribute(): bool
     {
         return $this->profile &&
@@ -254,5 +265,29 @@ class User extends Authenticatable
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Check if user is verified
+     */
+    public function isVerified(): bool
+    {
+        return $this->profile?->is_verified ?? false;
+    }
+
+    /**
+     * Get verification status
+     */
+    public function getVerificationStatus(): string
+    {
+        return $this->profile?->verification_status ?? 'unverified';
+    }
+
+    /**
+     * Check if user can start verification
+     */
+    public function canStartVerification(): bool
+    {
+        return $this->profile?->canStartNewVerification() ?? false;
     }
 }

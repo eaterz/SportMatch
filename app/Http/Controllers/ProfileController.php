@@ -13,7 +13,13 @@ class ProfileController extends Controller
 
     public function show()
     {
-        $user = Auth::user()->load(['profile.photos', 'sports']);
+        $user = Auth::user()->load([
+            'profile.photos',
+            'sports',
+            'verificationRequests' => function($query) {
+                $query->latest()->limit(1);
+            }
+        ]);
 
         return Inertia::render('Profile/Show', [
             'user' => $user,

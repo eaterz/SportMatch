@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User } from 'lucide-react';
+import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Shield, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import Navbar from '@/components/navbar';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface User {
     id: number;
@@ -15,6 +16,10 @@ interface User {
         bio?: string;
         gender?: string;
         main_photo?: string;
+        is_verified?: boolean;
+        verification_status?: string;
+        verification_submitted_at?: string;
+        verification_rejected_reason?: string;
     };
     sports?: Array<{
         id: number;
@@ -24,6 +29,12 @@ interface User {
             skill_level: string;
             is_preferred: boolean;
         };
+    }>;
+    verification_requests?: Array<{
+        id: number;
+        status: string;
+        created_at: string;
+        rejection_reason?: string;
     }>;
 }
 
@@ -155,9 +166,14 @@ export default function ProfileShow({ user, photos = [] }: Props) {
 
                             {/* User Info */}
                             <div className="flex-1 text-center md:text-left mt-4 md:mt-8">
-                                <h1 className="text-3xl font-bold text-white mb-2">
-                                    {user.name} {user.lastname}
-                                </h1>
+                                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                                    <h1 className="text-3xl font-bold text-white">
+                                        {user.name} {user.lastname}
+                                    </h1>
+                                    {user.profile?.is_verified && (
+                                        <VerifiedBadge size="lg" className="mt-1" />
+                                    )}
+                                </div>
 
                                 {editingInfo ? (
                                     <div className="space-y-3 max-w-md">
@@ -350,8 +366,131 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                         </div>
                     </div>
 
-                    {/* Right Column - Sports */}
+                    {/* Right Column - Sports & Verification */}
                     <div className="space-y-8">
+                        {/* Verification Section */}
+                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-gray-900">Profila verifikācija</h2>
+                                {user.profile?.is_verified && (
+                                    <VerifiedBadge size="md" />
+                                )}
+                            </div>
+
+                            {user.profile?.verification_status === 'verified' ? (
+                                // Verified Status
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="w-8 h-8 text-green-600" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-green-900 mb-2">
+                                        Profils verificēts!
+                                    </h3>
+                                    <p className="text-green-700 text-sm mb-4">
+                                        Tavs profils ir veiksmīgi verificēts. Tu esi uzticams SportMatch kopienas dalībnieks.
+                                    </p>
+                                    <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>Verificēts lietotājs</span>
+                                    </div>
+                                </div>
+                            ) : user.profile?.verification_status === 'pending' ? (
+                                // Pending Status
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Clock className="w-8 h-8 text-yellow-600" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+                                        Verifikācija procesā
+                                    </h3>
+                                    <p className="text-yellow-700 text-sm mb-4">
+                                        Mūsu komanda pārbauda tavus dokumentus. Parasti tas aizņem 1-3 darba dienas.
+                                    </p>
+                                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 mb-3">
+                                        <Clock className="w-4 h-4" />
+                                        <span>Iesniegts {user.profile?.verification_submitted_at}</span>
+                                    </div>
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                        <p className="text-xs text-yellow-800">
+                                            📧 Saņemsi e-pasta paziņojumu, kad verifikācija būs pabeigta
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : user.profile?.verification_status === 'rejected' ? (
+                                // Rejected Status
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-red-900 mb-2">
+                                        Verifikācija noraidīta
+                                    </h3>
+                                    <p className="text-red-700 text-sm mb-4">
+                                        Diemžēl mēs nevarējām verificēt tavu profilu šā iemesla dēļ:
+                                    </p>
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                                        <p className="text-sm text-red-800">
+                                            {user.profile?.verification_rejected_reason || 'Dokumenti neatbilst prasībām'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => router.get('/verification/start')}
+                                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all"
+                                    >
+                                        Mēģināt vēlreiz
+                                    </button>
+                                </div>
+                            ) : (
+                                // Unverified Status
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Shield className="w-8 h-8 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                        Verificē savu profilu
+                                    </h3>
+                                    <p className="text-gray-600 text-sm mb-4">
+                                        Iegūsti zilo atzīmi un palielini uzticamību SportMatch kopienā
+                                    </p>
+
+                                    {/* Benefits */}
+                                    <div className="text-left bg-blue-50 rounded-lg p-4 mb-4">
+                                        <h4 className="font-medium text-blue-900 mb-2">Verifikācijas ieguvumi:</h4>
+                                        <ul className="text-sm text-blue-800 space-y-1">
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircle className="w-3 h-3 text-blue-600" />
+                                                Zilā atzīme pie vārda
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircle className="w-3 h-3 text-blue-600" />
+                                                Augstāka uzticamība partneriem
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircle className="w-3 h-3 text-blue-600" />
+                                                Prioritāte meklēšanas rezultātos
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircle className="w-3 h-3 text-blue-600" />
+                                                Piekļuve VIP funkcijām
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <button
+                                        onClick={() => router.get('/verification/start')}
+                                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium hover:shadow-lg transition-all transform hover:scale-[1.02]"
+                                    >
+                                        Sākt verifikāciju
+                                    </button>
+
+                                    <p className="text-xs text-gray-500 mt-3">
+                                        Nepieciešams: Selfie + ID dokuments
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sports Section */}
                         {user.sports && user.sports.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-6">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6">Mani sporta veidi</h2>
@@ -371,13 +510,12 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                                             </div>
                                             {sport.pivot?.is_preferred ? (
                                                 <Star className="w-5 h-5 text-yellow-500" fill="currentColor" />
-                                            ):null}
+                                            ) : null}
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
-
                     </div>
                 </div>
             </div>
