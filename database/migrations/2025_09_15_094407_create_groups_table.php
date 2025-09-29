@@ -29,8 +29,7 @@ return new class extends Migration
 
         // Grupas dalībnieki
         Schema::create('group_members', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('group_id')->constrained()->onDelete('cascade');
+            $table->id();            $table->foreignId('group_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->enum('role', ['admin', 'moderator', 'member'])->default('member');
             $table->enum('status', ['pending', 'approved', 'blocked'])->default('approved');

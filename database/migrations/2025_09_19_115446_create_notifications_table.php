@@ -19,9 +19,11 @@ return new class extends Migration
                 'group_event_created',
                 'group_event_reminder',
                 'group_member_joined',
-                'group_invitation'
+                'group_invitation',
+                'verification_approved',
+                'verification_rejected',
             ]);
-            $table->json('data'); // Store notification details
+            $table->json('data');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 

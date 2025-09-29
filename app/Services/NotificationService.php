@@ -140,4 +140,35 @@ class NotificationService
 
         broadcast(new NotificationSent($notification, $invitee))->toOthers();
     }
+    public static function verificationApproved(User $user): void
+    {
+        $notification = Notification::create([
+            'user_id' => $user->id,
+            'type' => 'verification_approved',
+            'data' => [
+                'message' => 'Tavs profils ir veiksmīgi verificēts!',
+                'verified_at' => now()->toIso8601String()
+            ]
+        ]);
+
+        broadcast(new NotificationSent($notification, $user))->toOthers();
+    }
+
+    /**
+     * Create verification rejected notification
+     */
+    public static function verificationRejected(User $user, string $reason): void
+    {
+        $notification = Notification::create([
+            'user_id' => $user->id,
+            'type' => 'verification_rejected',
+            'data' => [
+                'message' => 'Tava verifikācija ir noraidīta',
+                'reason' => $reason,
+                'rejected_at' => now()->toIso8601String()
+            ]
+        ]);
+
+        broadcast(new NotificationSent($notification, $user))->toOthers();
+    }
 }
