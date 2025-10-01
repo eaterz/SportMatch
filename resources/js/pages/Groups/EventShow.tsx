@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign,
-    Edit, Trash2, UserPlus, UserMinus, User
+    Edit, Trash2, UserPlus, UserMinus, User, Star
 } from 'lucide-react';
+import { AddToCalendarButton } from '@/components/AddToCalendarButton';
 
 interface User {
     id: number;
@@ -35,6 +36,11 @@ interface Event {
     can_edit: boolean;
     creator: User;
     status: string;
+    // Feedback properties
+    average_rating?: number;
+    total_feedback?: number;
+    recommendation_percentage?: number;
+    user_has_feedback?: boolean;
 }
 
 interface Props {
@@ -258,54 +264,60 @@ export default function EventShow({ user, group, event, participants }: Props) {
                     <div className="space-y-6">
                         {/* Join/Leave button */}
                         {!isEventPast && (
-                            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                {event.is_participating ? (
-                                    event.is_creator ? (
-                                        <div className="text-center">
-                                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <User className="w-8 h-8 text-blue-600" />
+                            <>
+                                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                                    {event.is_participating ? (
+                                        event.is_creator ? (
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <User className="w-8 h-8 text-blue-600" />
+                                                </div>
+                                                <p className="font-medium text-gray-900 mb-2">Tu esi izveidotājs</p>
+                                                <p className="text-sm text-gray-600">Tu nevari pamest pats savu pasākumu</p>
                                             </div>
-                                            <p className="font-medium text-gray-900 mb-2">Tu esi izveidotājs</p>
-                                            <p className="text-sm text-gray-600">Tu nevari pamest pats savu pasākumu</p>
-                                        </div>
+                                        ) : (
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <UserMinus className="w-8 h-8 text-green-600" />
+                                                </div>
+                                                <p className="font-medium text-gray-900 mb-4">Tu piedalies</p>
+                                                <button
+                                                    onClick={leaveEvent}
+                                                    className="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+                                                >
+                                                    Pamest pasākumu
+                                                </button>
+                                            </div>
+                                        )
+
                                     ) : (
                                         <div className="text-center">
-                                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <UserMinus className="w-8 h-8 text-green-600" />
+                                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <UserPlus className="w-8 h-8 text-gray-600" />
                                             </div>
-                                            <p className="font-medium text-gray-900 mb-4">Tu piedalies</p>
-                                            <button
-                                                onClick={leaveEvent}
-                                                className="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
-                                            >
-                                                Pamest pasākumu
-                                            </button>
+                                            <p className="font-medium text-gray-900 mb-4">Pievienies pasākumam</p>
+                                            {isEventFull ? (
+                                                <button
+                                                    disabled
+                                                    className="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
+                                                >
+                                                    Pasākums ir pilns
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={joinEvent}
+                                                    className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                                >
+                                                    Pievienoties
+                                                </button>
+                                            )}
                                         </div>
-                                    )
-                                ) : (
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <UserPlus className="w-8 h-8 text-gray-600" />
-                                        </div>
-                                        <p className="font-medium text-gray-900 mb-4">Pievienies pasākumam</p>
-                                        {isEventFull ? (
-                                            <button
-                                                disabled
-                                                className="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
-                                            >
-                                                Pasākums ir pilns
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={joinEvent}
-                                                className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                                            >
-                                                Pievienoties
-                                            </button>
-                                        )}
-                                    </div>
+                                    )}
+                                </div>
+                                {event.is_participating && (
+                                    <AddToCalendarButton event={event} group={group} />
                                 )}
-                            </div>
+                            </>
                         )}
 
                         {/* Event stats */}
@@ -335,6 +347,84 @@ export default function EventShow({ user, group, event, participants }: Props) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Feedback Section - Only show for past events */}
+                        {isEventPast && (
+                            <div className="bg-white border border-gray-200 rounded-lg p-6">
+                                <h3 className="font-semibold text-gray-900 mb-4">Atsauksmes</h3>
+
+                                {event.average_rating && event.average_rating > 0 ? (
+                                    <div className="space-y-3">
+                                        {/* Average Rating */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600">Vidējais vērtējums</span>
+                                            <div className="flex items-center gap-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        className={`w-4 h-4 ${
+                                                            i < Math.round(event.average_rating || 0)
+                                                                ? 'text-yellow-400 fill-current'
+                                                                : 'text-gray-300'
+                                                        }`}
+                                                    />
+                                                ))}
+                                                <span className="ml-1 text-sm font-medium">
+                                                    {event.average_rating.toFixed(1)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Total feedback count */}
+                                        {event.total_feedback !== undefined && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Atsauksmju skaits</span>
+                                                <span className="font-medium">{event.total_feedback}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Recommendation rate */}
+                                        {event.recommendation_percentage !== undefined && event.recommendation_percentage !== null && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Iesaka</span>
+                                                <span className="font-medium">{event.recommendation_percentage}%</span>
+                                            </div>
+                                        )}
+
+                                        {/* View all feedback button */}
+                                        <Link
+                                            href={`/groups/${group.id}/events/${event.id}/feedback`}
+                                            className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center text-sm block mt-3"
+                                        >
+                                            Skatīt visas atsauksmes
+                                        </Link>
+
+                                        {/* Leave feedback button - only for participants who haven't left feedback */}
+                                        {event.is_participating && !event.user_has_feedback && (
+                                            <Link
+                                                href={`/groups/${group.id}/events/${event.id}/feedback/create`}
+                                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center text-sm block"
+                                            >
+                                                Atstāt atsauksmi
+                                            </Link>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <p className="text-gray-500 text-sm mb-3">Vēl nav atsauksmju</p>
+
+                                        {event.is_participating && !event.user_has_feedback && (
+                                            <Link
+                                                href={`/groups/${group.id}/events/${event.id}/feedback/create`}
+                                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center text-sm block"
+                                            >
+                                                Būdi pirmais - atstāj atsauksmi!
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Back to group */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">

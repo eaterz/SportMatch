@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\GroupEventFeedback;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GroupEvent extends Model
 {
@@ -98,5 +100,57 @@ class GroupEvent extends Model
         return $this->confirmedParticipants()
             ->where('user_id', $user->id)
             ->exists();
+    }
+
+    // Add this relationship
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(GroupEventFeedback::class, 'event_id');
+    }
+
+// Add method to check if user has given feedback
+    public function hasUserFeedback(User $user): bool
+    {
+        return $this->feedback()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+// Get average rating
+    public function getAverageRatingAttribute(): ?float
+    {
+        $avg = $this->feedback()->avg('rating');
+        return $avg ? round($avg, 1) : null;
+    }
+
+// Get recommendation percentage
+    public function getRecommendationPercentageAttribute(): ?int
+    {
+        $total = $this->feedback()->count();
+        if ($total === 0) return null;
+
+        $recommended = $this->feedback()->where('would_recommend', true)->count();
+        return round(($recommended / $total) * 100);
+    }
+
+// Check if event is eligible for feedback (ended and user participated)
+    public function canLeaveFeedback(User $user): bool
+    {
+        // Event must be past
+        if ($this->event_date >= now()) {
+            return false;
+        }
+
+        // User must have participated
+        if (!$this->isParticipating($user)) {
+            return false;
+        }
+
+        // User hasn't already left feedback
+        if ($this->hasUserFeedback($user)) {
+            return false;
+        }
+
+        return true;
     }
 }
