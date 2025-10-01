@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EventFeedbackController;
 use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\NotificationController;
@@ -20,8 +21,8 @@ Route::get('/', function () {
 })->name('home');
 
 
-    //Profile Setup
-    Route::middleware('auth')
+//Profile Setup
+Route::middleware('auth')
     ->prefix('profile/setup')
     ->name('profile.setup.')
     ->controller(ProfileSetupController::class)
@@ -159,13 +160,20 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/{group}/events/{event}/edit', 'editEvent')->name('events.edit');
             Route::delete('/{group}/events/{event}', 'destroyEvent')->name('events.destroy');
 
+            // Event Feedback Routes (Fixed - removed redundant prefix)
+            Route::get('/{group}/events/{event}/feedback', [EventFeedbackController::class, 'index'])->name('events.feedback.index');
+            Route::get('/{group}/events/{event}/feedback/create', [EventFeedbackController::class, 'create'])->name('events.feedback.create');
+            Route::post('/{group}/events/{event}/feedback', [EventFeedbackController::class, 'store'])->name('events.feedback.store');
+            Route::put('/{group}/events/{event}/feedback/{feedback}', [EventFeedbackController::class, 'update'])->name('events.feedback.update');
+            Route::delete('/{group}/events/{event}/feedback/{feedback}', [EventFeedbackController::class, 'destroy'])->name('events.feedback.destroy');
+
             // Administration
             Route::get('/{group}/settings', 'settings')->name('settings');
             Route::put('/{group}', 'update')->name('update');
             Route::delete('/{group}', 'destroy')->name('destroy');
         });
 
-    // Add this inside your authenticated routes section
+    // Photo Verification
     Route::controller(\App\Http\Controllers\PhotoVerificationController::class)
         ->prefix('verification')
         ->name('verification.')

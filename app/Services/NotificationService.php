@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\GroupEvent;
+use App\Models\GroupEventFeedback;
 use App\Models\Notification;
 use App\Models\User;
 use App\Events\NotificationSent;
@@ -166,6 +168,40 @@ class NotificationService
                 'message' => 'Tava verifikācija ir noraidīta',
                 'reason' => $reason,
                 'rejected_at' => now()->toIso8601String()
+            ]
+        ]);
+
+        broadcast(new NotificationSent($notification, $user))->toOthers();
+    }
+
+    public static function eventFeedbackReceived(GroupEvent $event, GroupEventFeedback $feedback): void
+    {
+        $notification = Notification::create([
+            'user_id' => $event->creator_id,
+            'type' => 'event_feedback_received',
+            'data' => [
+                'event_id' => $event->id,
+                'event_title' => $event->title,
+                'group_id' => $event->group_id,
+                'rating' => $feedback->rating,
+                'user_name' => $feedback->user->name . ' ' . $feedback->user->lastname,
+                'has_comment' => !empty($feedback->comment)
+            ]
+        ]);
+
+        broadcast(new NotificationSent($notification, $event->creator))->toOthers();
+    }
+
+    public static function eventFeedbackReminder(GroupEvent $event, User $user): void
+    {
+        $notification = Notification::create([
+            'user_id' => $user->id,
+            'type' => 'event_feedback_reminder',
+            'data' => [
+                'event_id' => $event->id,
+                'event_title' => $event->title,
+                'group_id' => $event->group_id,
+                'group_name' => $event->group->name
             ]
         ]);
 
