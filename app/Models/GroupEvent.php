@@ -82,6 +82,8 @@ class GroupEvent extends Model
         ]);
     }
 
+
+
     // Noņem dalībnieku
     public function removeParticipant(User $user): void
     {
@@ -153,4 +155,6 @@ class GroupEvent extends Model
 
         return true;
     }
+
+
 }

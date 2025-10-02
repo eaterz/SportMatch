@@ -18,11 +18,13 @@ class PartnerSearchController extends Controller
         $user = Auth::user();
 
         $query = User::where('id', '!=', $user->id)
+            ->where('is_admin', false)
             ->with([
                 'profile.photos',
                 'sports',
                 'availabilitySchedules'
             ]);
+
 
 
         if ($request->filled('search')) {

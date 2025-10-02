@@ -27,7 +27,6 @@ class Notification extends Model
         return $this->belongsTo(User::class);
     }
 
-
     public function markAsRead(): void
     {
         if (is_null($this->read_at)) {
@@ -35,12 +34,10 @@ class Notification extends Model
         }
     }
 
-
     public function isRead(): bool
     {
         return !is_null($this->read_at);
     }
-
 
     public function getMessage(): string
     {
@@ -71,6 +68,16 @@ class Notification extends Model
             case 'group_invitation':
                 return "{$data['inviter_name']} uzaicina tevi pievienoties grupai {$data['group_name']}";
 
+            case 'event_feedback_received':
+                $message = "{$data['user_name']} atstāja vērtējumu par pasākumu '{$data['event_title']}'";
+                return $message;
+
+            case 'verification_approved':
+                return "Tavs verifikācijas pieprasījums tika apstiprināts";
+
+            case 'verification_rejected':
+                return "Tavs verifikācijas pieprasījums tika noraidīts";
+
             default:
                 return 'Jauns paziņojums';
         }
@@ -97,11 +104,17 @@ class Notification extends Model
             case 'group_invitation':
                 return 'users';
 
+            case 'event_feedback_received':
+                return 'star';
+
+            case 'verification_approved':
+            case 'verification_rejected':
+                return 'shield-check';
+
             default:
                 return 'bell';
         }
     }
-
 
     public function getActionUrl(): ?string
     {
@@ -130,11 +143,17 @@ class Notification extends Model
             case 'group_invitation':
                 return "/groups/{$data['group_id']}";
 
+            case 'event_feedback_received':
+                return "/groups/{$data['group_id']}/events/{$data['event_id']}/feedback";
+
+            case 'verification_approved':
+            case 'verification_rejected':
+                return "/profile/{$data['user_id']}";
+
             default:
                 return null;
         }
     }
-
 
     public function scopeUnread($query)
     {

@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { Search, MapPin, UserPlus, Clock, Filter, Star, User } from 'lucide-react';
 import Navbar from '@/components/navbar';
 import PartnerProfileModal from '@/components/PartnerProfileModal';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface UserType {
     id: number;
@@ -38,6 +39,8 @@ interface Partner {
         bio?: string;
         main_photo?: string;
         phone?: string;
+        is_verified?: boolean;
+        is_admin?: boolean;
         photos?: Array<{
             id: number;
             photo_url: string;
@@ -111,8 +114,11 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
     };
 
     const visiblePartners = localPartners.filter(
-        (partner) => partner.friendship_status === 'none' || partner.friendship_status === 'pending_sent'
+        (partner) =>
+            !partner.profile?.is_admin && // exclude admins
+            (partner.friendship_status === 'none' || partner.friendship_status === 'pending_sent')
     );
+
 
     const sendFriendRequest = (partnerId: number) => {
         // Optimistically update both local partners list and selected partner
@@ -123,6 +129,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                     : partner
             )
         );
+
 
         if (selectedPartner && selectedPartner.id === partnerId) {
             setSelectedPartner(prev => prev ? {
@@ -300,8 +307,10 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
 
                 {/* Results */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
                     {visiblePartners.length > 0 ? (
                         visiblePartners.map(partner => (
+
                             <div key={partner.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all">
                                 {/* Profile Image Section */}
                                 <div
@@ -339,9 +348,14 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                 <div className="p-4">
                                     {/* Name and Location */}
                                     <div className="mb-3">
-                                        <h3 className="font-semibold text-lg text-gray-900">
-                                            {partner.name} {partner.lastname || ''}
-                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-semibold text-lg text-gray-900">
+                                                {partner.name} {partner.lastname || ''}
+                                            </h3>
+                                            {partner.profile?.is_verified && (
+                                                <VerifiedBadge size="sm" />
+                                                )}
+                                        </div>
                                         <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                                             {partner.profile?.age && (
                                                 <span>{partner.profile.age} gadi</span>

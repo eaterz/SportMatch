@@ -4,6 +4,7 @@ import {
     ArrowLeft, Users, Shield, UserCheck, Clock,
     Search, Filter, MoreVertical, Crown
 } from 'lucide-react';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface User {
     id: number;
@@ -11,6 +12,7 @@ interface User {
     lastname?: string;
     profile?: {
         main_photo?: string;
+        is_verified?: boolean;
         location?: string;
     };
     pivot?: {
@@ -151,10 +153,14 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+
+                                        <div className="flex-1 min-w-0 flex items-center gap-2">
                                             <p className="font-medium text-gray-900 truncate">
                                                 {member.name} {member.lastname}
                                             </p>
+                                            {member.profile?.is_verified && (
+                                                <VerifiedBadge size="sm" />
+                                            )}
                                             {member.profile?.location && (
                                                 <p className="text-xs text-gray-500 truncate">
                                                     {member.profile.location}
@@ -243,6 +249,9 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                                                     <h3 className="font-medium text-gray-900">
                                                         {member.name} {member.lastname}
                                                     </h3>
+                                                    {member.profile?.is_verified && (
+                                                        <VerifiedBadge size="sm" />
+                                                    )}
                                                     {getRoleBadge(member.pivot?.role || 'member', member.id)}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm text-gray-600">

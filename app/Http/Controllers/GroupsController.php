@@ -592,7 +592,6 @@ class GroupsController extends Controller
             return back()->with('error', 'Tikai grupas dalībnieki var redzēt pasākumu detaļas');
         }
 
-
         if ($event->group_id !== $group->id) {
             return back()->with('error', 'Pasākums nav no šīs grupas');
         }
@@ -600,11 +599,15 @@ class GroupsController extends Controller
         $event->load(['creator', 'confirmedParticipants.profile']);
         $event->loadCount('confirmedParticipants');
 
-
         $event->is_participating = $event->isParticipating($user);
         $event->is_creator = $event->creator_id === $user->id;
         $event->can_edit = $event->creator_id === $user->id || $group->isAdmin($user);
 
+
+        $event->average_rating = $event->average_rating;
+        $event->total_feedback = $event->feedback()->count();
+        $event->recommendation_percentage = $event->recommendation_percentage;
+        $event->user_has_feedback = $event->hasUserFeedback($user);
 
         $participants = $event->confirmedParticipants->map(function($participant) {
             if ($participant->profile) {

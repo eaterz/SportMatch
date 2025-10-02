@@ -22,6 +22,7 @@ return new class extends Migration
                 'group_invitation',
                 'verification_approved',
                 'verification_rejected',
+                'event_feedback_received'
             ]);
             $table->json('data');
             $table->timestamp('read_at')->nullable();

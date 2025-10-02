@@ -13,6 +13,7 @@ import {
     MapPin
 } from 'lucide-react';
 import Navbar from '@/components/navbar';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface UserType {
     id: number;
@@ -40,6 +41,7 @@ interface Friend {
         location: string;
         bio?: string;
         main_photo?: string;
+        is_verified: boolean;
     };
     sports?: Sport[];
 }
@@ -123,9 +125,14 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                         )}
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900">
-                            {friend.name} {friend.lastname || ''}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">
+                                {friend.name} {friend.lastname || ''}
+                            </h3>
+                            {friend.profile?.is_verified && (
+                                <VerifiedBadge size="sm" />
+                            )}
+                        </div>
                         <div className="text-xs text-gray-500 flex items-center">
                             {friend.profile?.location && (
                                 <div className="flex items-center gap-1">

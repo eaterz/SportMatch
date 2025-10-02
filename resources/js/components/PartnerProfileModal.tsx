@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Star, Calendar, Clock, UserPlus, MessageCircle, Phone, Mail, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface UserType {
     id: number;
@@ -35,6 +36,7 @@ interface Partner {
         bio?: string;
         main_photo?: string;
         phone?: string;
+        is_verified?: boolean;
         photos?: Array<{
             id: number;
             photo_url: string;
@@ -352,9 +354,15 @@ const PartnerProfileModal: React.FC<PartnerProfileModalProps> = ({
 
                             {/* Header */}
                             <div className="mb-8">
+                                <div className="flex items-center gap-2">
                                 <h1 className="text-4xl font-bold text-gray-900 mb-3">
                                     {partner.name} {partner.lastname || ''}
                                 </h1>
+                                    {partner.profile?.is_verified && (
+                                        <VerifiedBadge size="lg" />
+                                    )}
+                                </div>
+
                                 <div className="flex items-center gap-6 text-gray-600">
                                     {partner.profile?.age && (
                                         <div className="flex items-center gap-2">
