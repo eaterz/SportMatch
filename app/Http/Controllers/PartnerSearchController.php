@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Friendship;
 use App\Models\Sport;
+use App\Models\City;
 use App\Models\UserProfilePhoto;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -16,46 +17,65 @@ class PartnerSearchController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $user->load('profile.city'); // Load city relationship
 
         $query = User::where('id', '!=', $user->id)
             ->where('is_admin', false)
             ->with([
                 'profile.photos',
+                'profile.city', // ADD THIS
                 'sports',
                 'availabilitySchedules'
             ]);
 
-
-
+        // Search by name or city
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('lastname', 'like', "%{$search}%")
-                    ->orWhereHas('profile', function($q) use ($search) {
-                        $q->where('location', 'like', "%{$search}%");
+                    ->orWhereHas('profile.city', function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
                     });
             });
         }
 
-
+        // Filter by sport
         if ($request->filled('sport')) {
             $query->whereHas('sports', function($q) use ($request) {
                 $q->where('sports.id', $request->sport);
             });
         }
 
+        // Filter by skill level
         if ($request->filled('skill_level')) {
             $query->whereHas('sports', function($q) use ($request) {
                 $q->where('user_sports.skill_level', $request->skill_level);
             });
         }
 
+        // Distance filter
+        if ($request->filled('max_distance') && $user->profile && $user->profile->city_id) {
+            $maxDistance = (int)$request->max_distance;
+            $userCity = $user->profile->city;
+
+            if ($userCity) {
+                // Get cities within distance
+                $nearbyCityIds = City::withinDistance(
+                    $userCity->latitude,
+                    $userCity->longitude,
+                    $maxDistance
+                )->pluck('id')->toArray();
+
+                $query->whereHas('profile', function($q) use ($nearbyCityIds) {
+                    $q->whereIn('city_id', $nearbyCityIds);
+                });
+            }
+        }
 
         $partners = $query->get()->map(function($partner) use ($user) {
-
+            // Prepare profile data
             if ($partner->profile) {
-
                 $mainPhoto = $partner->profile->photos()
                     ->where('is_main', true)
                     ->first();
@@ -75,8 +95,20 @@ class PartnerSearchController extends Controller
                 });
 
                 $partner->profile->age = $partner->profile->age;
+
+                // Add city name for display
+                if ($partner->profile->city) {
+                    $partner->profile->location = $partner->profile->city->name;
+
+                    // Calculate distance if both users have cities
+                    if ($user->profile && $user->profile->city) {
+                        $distance = $user->profile->city->distanceTo($partner->profile->city);
+                        $partner->distance = round($distance, 1);
+                    }
+                }
             }
 
+            // Availability schedules
             $partner->availability_schedules = $partner->availabilitySchedules->map(function($schedule) {
                 return [
                     'day_of_week' => $schedule->day_of_week,
@@ -85,6 +117,7 @@ class PartnerSearchController extends Controller
                 ];
             });
 
+            // Friendship status
             $sentFriendship = Friendship::where('sender_id', $user->id)
                 ->where('receiver_id', $partner->id)
                 ->first();
@@ -94,17 +127,9 @@ class PartnerSearchController extends Controller
                 ->first();
 
             if ($sentFriendship) {
-                if ($sentFriendship->status === 'accepted') {
-                    $partner->friendship_status = 'friends';
-                } else if ($sentFriendship->status === 'pending') {
-                    $partner->friendship_status = 'pending_sent';
-                }
+                $partner->friendship_status = $sentFriendship->status === 'accepted' ? 'friends' : 'pending_sent';
             } else if ($receivedFriendship) {
-                if ($receivedFriendship->status === 'accepted') {
-                    $partner->friendship_status = 'friends';
-                } else if ($receivedFriendship->status === 'pending') {
-                    $partner->friendship_status = 'pending_received';
-                }
+                $partner->friendship_status = $receivedFriendship->status === 'accepted' ? 'friends' : 'pending_received';
             } else {
                 $partner->friendship_status = 'none';
             }
@@ -112,14 +137,23 @@ class PartnerSearchController extends Controller
             return $partner;
         });
 
+        // Sort by distance if filter applied
+        if ($request->filled('max_distance') && $user->profile && $user->profile->city_id) {
+            $partners = $partners->sortBy('distance')->values();
+        }
+
         $sports = Sport::where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'icon']);
+
+        $cities = City::orderBy('population', 'desc')
+            ->get(['id', 'name', 'region']);
 
         return Inertia::render('PartnerSearch', [
             'user' => $user,
             'partners' => $partners,
             'sports' => $sports,
+            'cities' => $cities,
             'filters' => $request->only(['search', 'sport', 'skill_level', 'max_distance'])
         ]);
     }
@@ -144,6 +178,7 @@ class PartnerSearchController extends Controller
                 'status' => 'pending'
             ]);
         }
+
         NotificationService::friendRequest($user, $receiver);
 
         return back()->with('success', 'Draudzības pieprasījums nosūtīts!');

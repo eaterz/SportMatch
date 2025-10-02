@@ -1,7 +1,6 @@
 import React from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Trophy, Users, Search, Plus, Calendar, MapPin, User } from 'lucide-react';
-
 import Navbar from '@/components/navbar';
 
 interface User {
@@ -70,6 +69,13 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
         );
     }
 
+    // Filter out events that have already ended
+    const currentDate = new Date();
+    const activeUpcomingEvents = upcomingEvents.filter(event => {
+        const eventDate = new Date(event.event_date);
+        return eventDate >= currentDate;
+    });
+
     const handleCreateGroup = () => {
         router.get('/groups/create');
     };
@@ -110,7 +116,6 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
     return (
         <div className="min-h-screen bg-gray-50">
             <Head title="Dashboard - SportMatch" />
-
 
             <Navbar user={user} />
 
@@ -177,7 +182,7 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
                         <div className="text-sm text-gray-600">Manas grupas</div>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-                        <div className="text-2xl font-bold text-black">{upcomingEvents.length}</div>
+                        <div className="text-2xl font-bold text-black">{activeUpcomingEvents.length}</div>
                         <div className="text-sm text-gray-600">Gaidāmie pasākumi</div>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm p-4 text-center">
@@ -293,11 +298,11 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
                 </div>
 
                 {/* Upcoming Events */}
-                {upcomingEvents.length > 0 && (
+                {activeUpcomingEvents.length > 0 && (
                     <div className="bg-white rounded-lg shadow-sm p-6">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Gaidāmie pasākumi</h2>
                         <div className="space-y-3">
-                            {upcomingEvents.slice(0, 3).map((event) => (
+                            {activeUpcomingEvents.slice(0, 3).map((event) => (
                                 <div
                                     key={event.id}
                                     onClick={() => handleEventClick(event.id, event.group.id)}

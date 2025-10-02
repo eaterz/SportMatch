@@ -1,11 +1,11 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileStep1Request;
 use App\Http\Requests\ProfileStep2Request;
 use App\Http\Requests\ProfileStep3Request;
+use App\Models\City;
 use App\Models\Sport;
 use App\Models\UserProfile;
 use App\Models\UserSport;
@@ -28,9 +28,11 @@ class ProfileSetupController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile ?? new UserProfile();
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
 
         return Inertia::render('Profile/Setup/Step1', [
             'profile' => $profile,
+            'cities' => $cities,
             'currentStep' => 1,
             'totalSteps' => 4,
         ]);
@@ -74,11 +76,8 @@ class ProfileSetupController extends Controller
         $user = Auth::user();
         $sportsData = $request->validated()['sports'];
 
-
         DB::transaction(function () use ($user, $sportsData) {
-
             $user->userSports()->delete();
-
 
             foreach ($sportsData as $sportData) {
                 UserSport::create([
@@ -109,7 +108,6 @@ class ProfileSetupController extends Controller
         ]);
     }
 
-
     // Saglabā 3. soli
     public function storeStep3(ProfileStep3Request $request)
     {
@@ -117,9 +115,7 @@ class ProfileSetupController extends Controller
         $scheduleData = $request->validated()['schedule'] ?? [];
 
         DB::transaction(function () use ($user, $scheduleData) {
-
             $user->availabilitySchedules()->delete();
-
 
             foreach ($scheduleData as $dayData) {
                 AvailabilitySchedule::create([
@@ -163,23 +159,4 @@ class ProfileSetupController extends Controller
         return redirect()->route('dashboard')
             ->with('success', 'Profils izveidots! Laipni lūgti SportMatch!');
     }
-
-    // Pārbauda vai solis ir pieejams
-    private function canAccessStep(int $step): bool
-    {
-        $user = Auth::user();
-
-        return match($step) {
-            1 => true,
-            2 => $user->profile && $user->profile->is_complete,
-            3 => $user->sports()->count() > 0,
-            4 => true,
-            default => false,
-        };
-    }
 }
-
-
-
-
-

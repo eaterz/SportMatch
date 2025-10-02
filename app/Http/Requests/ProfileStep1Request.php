@@ -15,8 +15,8 @@ class ProfileStep1Request extends FormRequest
 
     public function rules(): array
     {
-        $minDate = Carbon::now()->subYears(80)->toDateString(); // oldest allowed
-        $maxDate = Carbon::now()->subYears(16)->toDateString(); // youngest allowed
+        $minDate = Carbon::now()->subYears(80)->toDateString();
+        $maxDate = Carbon::now()->subYears(16)->toDateString();
 
         return [
             'birth_date' => [
@@ -27,7 +27,7 @@ class ProfileStep1Request extends FormRequest
             ],
             'phone' => 'required|string|max:20',
             'gender' => ['required', Rule::in(['male', 'female'])],
-            'location' => 'required|string|max:255',
+            'city_id' => 'required|exists:cities,id',
         ];
     }
 
@@ -40,7 +40,9 @@ class ProfileStep1Request extends FormRequest
             'birth_date.before_or_equal' => 'Vecumam jābūt vismaz 16 gadiem.',
             'gender.required' => 'Dzimums ir obligāts.',
             'gender.in' => 'Dzimums nav derīgs.',
-            'location.required' => 'Atrašanās vieta ir obligāta.',
+            'city_id.required' => 'Pilsēta ir obligāta.',
+            'city_id.exists' => 'Izvēlētā pilsēta nav derīga.',
+            'phone.required' => 'Telefona numurs ir obligāts.',
             'phone.max' => 'Telefona numurs pārāk garš.',
         ];
     }

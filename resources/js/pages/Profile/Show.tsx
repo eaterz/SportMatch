@@ -1,8 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Shield, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Shield, CheckCircle, Clock, AlertTriangle, Search } from 'lucide-react';
 import Navbar from '@/components/navbar';
-import VerifiedBadge from '@/components/VerifiedBadge';
+
+interface City {
+    id: number;
+    name: string;
+    region: string;
+}
 
 interface User {
     id: number;
@@ -11,7 +16,8 @@ interface User {
     email: string;
     profile?: {
         age?: number;
-        location?: string;
+        city_id?: number;
+        city?: City;
         phone?: string;
         bio?: string;
         gender?: string;
@@ -30,12 +36,6 @@ interface User {
             is_preferred: boolean;
         };
     }>;
-    verification_requests?: Array<{
-        id: number;
-        status: string;
-        created_at: string;
-        rejection_reason?: string;
-    }>;
 }
 
 interface Photo {
@@ -48,11 +48,14 @@ interface Photo {
 interface Props {
     user: User;
     photos: Photo[];
+    cities?: City[];
 }
 
-export default function ProfileShow({ user, photos = [] }: Props) {
+export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
     const [editingBio, setEditingBio] = useState(false);
     const [editingInfo, setEditingInfo] = useState(false);
+    const [searchCity, setSearchCity] = useState('');
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { data: bioData, setData: setBioData, post: postBio, processing: processingBio } = useForm({
@@ -61,9 +64,17 @@ export default function ProfileShow({ user, photos = [] }: Props) {
 
     const { data: infoData, setData: setInfoData, post: postInfo, processing: processingInfo } = useForm({
         phone: user.profile?.phone || '',
-        location: user.profile?.location || '',
+        city_id: user.profile?.city_id || null,
         bio: user.profile?.bio || ''
     });
+
+    const filteredCities = cities.filter(city =>
+        city.name.toLowerCase().includes(searchCity.toLowerCase()) ||
+        city.region.toLowerCase().includes(searchCity.toLowerCase())
+    );
+
+    const selectedCity = cities.find(c => c.id === infoData.city_id);
+    const currentCity = user.profile?.city;
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -171,19 +182,69 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                                         {user.name} {user.lastname}
                                     </h1>
                                     {user.profile?.is_verified && (
-                                        <VerifiedBadge size="lg" className="mt-1" />
+                                        <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
+                                            Verificēts
+                                        </div>
                                     )}
                                 </div>
 
                                 {editingInfo ? (
                                     <div className="space-y-3 max-w-md">
-                                        <input
-                                            type="text"
-                                            value={infoData.location}
-                                            onChange={e => setInfoData('location', e.target.value)}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Atrašanās vieta"
-                                        />
+                                        {/* City Selector */}
+                                        <div className="relative">
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    value={selectedCity ? selectedCity.name : searchCity}
+                                                    onChange={(e) => {
+                                                        setSearchCity(e.target.value);
+                                                        setShowCityDropdown(true);
+                                                        if (!e.target.value) {
+                                                            setInfoData('city_id', null);
+                                                        }
+                                                    }}
+                                                    onFocus={() => setShowCityDropdown(true)}
+                                                    placeholder="Meklēt pilsētu..."
+                                                    className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            {/* Dropdown */}
+                                            {showCityDropdown && (
+                                                <>
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={() => setShowCityDropdown(false)}
+                                                    />
+                                                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                        {filteredCities.length > 0 ? (
+                                                            filteredCities.map(city => (
+                                                                <div
+                                                                    key={city.id}
+                                                                    onClick={() => {
+                                                                        setInfoData('city_id', city.id);
+                                                                        setSearchCity(city.name);
+                                                                        setShowCityDropdown(false);
+                                                                    }}
+                                                                    className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                                                        infoData.city_id === city.id ? 'bg-blue-50' : ''
+                                                                    }`}
+                                                                >
+                                                                    <div className="font-medium text-gray-900">{city.name}</div>
+                                                                    <div className="text-sm text-gray-500">{city.region} reģions</div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="px-4 py-2 text-gray-500 text-sm">
+                                                                Nav atrasta pilsēta
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
                                         <input
                                             type="text"
                                             value={infoData.phone}
@@ -194,13 +255,16 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                                         <div className="flex space-x-2">
                                             <button
                                                 onClick={saveInfo}
-                                                disabled={processingInfo}
-                                                className="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl hover:shadow-lg transition-all"
+                                                disabled={processingInfo || !infoData.city_id}
+                                                className="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Saglabāt
                                             </button>
                                             <button
-                                                onClick={() => setEditingInfo(false)}
+                                                onClick={() => {
+                                                    setEditingInfo(false);
+                                                    setShowCityDropdown(false);
+                                                }}
                                                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all"
                                             >
                                                 Atcelt
@@ -214,10 +278,10 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                                                 <Mail className="w-4 h-4" />
                                                 <span>{user.email}</span>
                                             </div>
-                                            {user.profile?.location && (
+                                            {currentCity && (
                                                 <div className="flex items-center justify-center md:justify-start space-x-2">
                                                     <MapPin className="w-4 h-4" />
-                                                    <span>{user.profile.location}</span>
+                                                    <span>{currentCity.name}</span>
                                                 </div>
                                             )}
                                             {user.profile?.phone && (
@@ -228,7 +292,10 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                                             )}
                                         </div>
                                         <button
-                                            onClick={() => setEditingInfo(true)}
+                                            onClick={() => {
+                                                setEditingInfo(true);
+                                                setSearchCity('');
+                                            }}
                                             className="text-black hover:text-gray-700 text-sm font-medium mt-2"
                                         >
                                             Rediģēt informāciju
@@ -366,130 +433,8 @@ export default function ProfileShow({ user, photos = [] }: Props) {
                         </div>
                     </div>
 
-                    {/* Right Column - Sports & Verification */}
+                    {/* Right Column - Sports */}
                     <div className="space-y-8">
-                        {/* Verification Section */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Profila verifikācija</h2>
-                                {user.profile?.is_verified && (
-                                    <VerifiedBadge size="md" />
-                                )}
-                            </div>
-
-                            {user.profile?.verification_status === 'verified' ? (
-                                // Verified Status
-                                <div className="text-center py-6">
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="w-8 h-8 text-green-600" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-green-900 mb-2">
-                                        Profils verificēts!
-                                    </h3>
-                                    <p className="text-green-700 text-sm mb-4">
-                                        Tavs profils ir veiksmīgi verificēts. Tu esi uzticams SportMatch kopienas dalībnieks.
-                                    </p>
-                                    <div className="flex items-center justify-center gap-2 text-sm text-green-600">
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span>Verificēts lietotājs</span>
-                                    </div>
-                                </div>
-                            ) : user.profile?.verification_status === 'pending' ? (
-                                // Pending Status
-                                <div className="text-center py-6">
-                                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Clock className="w-8 h-8 text-yellow-600" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-                                        Verifikācija procesā
-                                    </h3>
-                                    <p className="text-yellow-700 text-sm mb-4">
-                                        Mūsu komanda pārbauda tavus dokumentus. Parasti tas aizņem 1-3 darba dienas.
-                                    </p>
-                                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 mb-3">
-                                        <Clock className="w-4 h-4" />
-                                        <span>Iesniegts {user.profile?.verification_submitted_at}</span>
-                                    </div>
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                        <p className="text-xs text-yellow-800">
-                                            📧 Saņemsi e-pasta paziņojumu, kad verifikācija būs pabeigta
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : user.profile?.verification_status === 'rejected' ? (
-                                // Rejected Status
-                                <div className="text-center py-6">
-                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <AlertTriangle className="w-8 h-8 text-red-600" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-red-900 mb-2">
-                                        Verifikācija noraidīta
-                                    </h3>
-                                    <p className="text-red-700 text-sm mb-4">
-                                        Diemžēl mēs nevarējām verificēt tavu profilu šā iemesla dēļ:
-                                    </p>
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                                        <p className="text-sm text-red-800">
-                                            {user.profile?.verification_rejected_reason || 'Dokumenti neatbilst prasībām'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => router.get('/verification/start')}
-                                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all"
-                                    >
-                                        Mēģināt vēlreiz
-                                    </button>
-                                </div>
-                            ) : (
-                                // Unverified Status
-                                <div className="text-center py-6">
-                                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Shield className="w-8 h-8 text-blue-600" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                        Verificē savu profilu
-                                    </h3>
-                                    <p className="text-gray-600 text-sm mb-4">
-                                        Iegūsti zilo atzīmi un palielini uzticamību SportMatch kopienā
-                                    </p>
-
-                                    {/* Benefits */}
-                                    <div className="text-left bg-blue-50 rounded-lg p-4 mb-4">
-                                        <h4 className="font-medium text-blue-900 mb-2">Verifikācijas ieguvumi:</h4>
-                                        <ul className="text-sm text-blue-800 space-y-1">
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-3 h-3 text-blue-600" />
-                                                Zilā atzīme pie vārda
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-3 h-3 text-blue-600" />
-                                                Augstāka uzticamība partneriem
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-3 h-3 text-blue-600" />
-                                                Prioritāte meklēšanas rezultātos
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-3 h-3 text-blue-600" />
-                                                Piekļuve VIP funkcijām
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <button
-                                        onClick={() => router.get('/verification/start')}
-                                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium hover:shadow-lg transition-all transform hover:scale-[1.02]"
-                                    >
-                                        Sākt verifikāciju
-                                    </button>
-
-                                    <p className="text-xs text-gray-500 mt-3">
-                                        Nepieciešams: Selfie + ID dokuments
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-
                         {/* Sports Section */}
                         {user.sports && user.sports.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-6">

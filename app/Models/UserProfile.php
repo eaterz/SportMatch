@@ -19,6 +19,7 @@ class UserProfile extends Model
         'gender',
         'bio',
         'location',
+        'city_id',
         'is_verified',
         'verified_at',
         'verification_method'
@@ -35,6 +36,11 @@ class UserProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 
     public function photos(): HasMany
@@ -75,48 +81,37 @@ class UserProfile extends Model
     {
         return !is_null($this->birth_date)
             && !is_null($this->gender)
-            && !is_null($this->location);
+            && !is_null($this->city_id);
     }
 
     public function setPhoneAttribute($value)
     {
         if ($value) {
-            $digits = preg_replace('/\D/', '', $value); // keep only numbers
-            $digits = preg_replace('/^371/', '', $digits); // remove leading 371 if exists
+            $digits = preg_replace('/\D/', '', $value);
+            $digits = preg_replace('/^371/', '', $digits);
             $this->attributes['phone'] = '+371' . $digits;
         } else {
             $this->attributes['phone'] = null;
         }
     }
 
-    /**
-     * Photo verification requests
-     */
     public function photoVerificationRequests()
     {
         return $this->hasMany(PhotoVerificationRequest::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Latest verification request
-     */
     public function latestVerificationRequest()
     {
         return $this->hasOne(PhotoVerificationRequest::class, 'user_id', 'user_id')
             ->latest();
     }
 
-    /**
-     * Get current verification status for frontend
-     */
     public function getVerificationStatusAttribute(): string
     {
-        // If already verified, return verified status
         if ($this->is_verified) {
             return 'verified';
         }
 
-        // Get the latest verification request
         $latestRequest = $this->photoVerificationRequests()
             ->latest()
             ->first();
@@ -125,23 +120,17 @@ class UserProfile extends Model
             return 'unverified';
         }
 
-        // Check if pending and not expired
         if ($latestRequest->status === 'pending' && !$latestRequest->isExpired()) {
             return 'pending';
         }
 
-        // Check if rejected
         if ($latestRequest->status === 'rejected') {
             return 'rejected';
         }
 
-        // Default to unverified
         return 'unverified';
     }
 
-    /**
-     * Get when verification was submitted (for pending status)
-     */
     public function getVerificationSubmittedAtAttribute(): ?string
     {
         $latestRequest = $this->photoVerificationRequests()
@@ -152,9 +141,6 @@ class UserProfile extends Model
         return $latestRequest ? $latestRequest->created_at->diffForHumans() : null;
     }
 
-    /**
-     * Get rejection reason (for rejected status)
-     */
     public function getVerificationRejectedReasonAttribute(): ?string
     {
         $latestRequest = $this->photoVerificationRequests()
@@ -165,17 +151,12 @@ class UserProfile extends Model
         return $latestRequest?->rejection_reason;
     }
 
-    /**
-     * Check if user can start new verification
-     */
     public function canStartNewVerification(): bool
     {
-        // If already verified, can't start new verification
         if ($this->is_verified) {
             return false;
         }
 
-        // Check if there's a pending non-expired request
         $pendingRequest = $this->photoVerificationRequests()
             ->where('status', 'pending')
             ->where('expires_at', '>', now())
@@ -184,9 +165,6 @@ class UserProfile extends Model
         return !$pendingRequest;
     }
 
-    /**
-     * Get verification badge data
-     */
     public function getVerificationBadgeAttribute(): array
     {
         return [
@@ -194,5 +172,18 @@ class UserProfile extends Model
             'verified_at' => $this->verified_at?->format('d.m.Y'),
             'method' => $this->verification_method
         ];
+    }
+
+    /**
+     * Calculate distance to another user's city
+     */
+
+    public function distanceTo(UserProfile $otherProfile): ?float
+    {
+        if (!$this->city || !$otherProfile->city) {
+            return null;
+        }
+
+        return $this->city->distanceTo($otherProfile->city);
     }
 }

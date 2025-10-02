@@ -15,17 +15,22 @@ class ProfileController extends Controller
     {
         $user = Auth::user()->load([
             'profile.photos',
+            'profile.city',
             'sports',
             'verificationRequests' => function($query) {
                 $query->latest()->limit(1);
             }
         ]);
 
+        $cities = \App\Models\City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
         return Inertia::render('Profile/Show', [
             'user' => $user,
-            'photos' => $user->profile ? $user->profile->photos : []
+            'photos' => $user->profile ? $user->profile->photos : [],
+            'cities' => $cities
         ]);
     }
+
 
 
     public function updateBio(Request $request)
@@ -138,7 +143,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'phone' => 'nullable|string|max:20',
-            'location' => 'nullable|string|max:100',
+            'city_id' => 'required|exists:cities,id',
             'bio' => 'nullable|string|max:500'
         ]);
 
@@ -148,7 +153,7 @@ class ProfileController extends Controller
             return back()->with('error', 'Profils nav atrasts');
         }
 
-        $user->profile->update($request->only(['phone', 'location', 'bio']));
+        $user->profile->update($request->only(['phone', 'city_id', 'bio']));
 
         return back()->with('success', 'Profils atjaunināts');
     }

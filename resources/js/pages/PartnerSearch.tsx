@@ -22,10 +22,10 @@ interface Sport {
     };
 }
 
-interface AvailabilitySchedule {
-    day_of_week: string;
-    start_time: string;
-    end_time: string;
+interface City {
+    id: number;
+    name: string;
+    region: string;
 }
 
 interface Partner {
@@ -49,7 +49,6 @@ interface Partner {
     };
     sports?: Sport[];
     friendship_status?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
-    availability_schedules?: AvailabilitySchedule[];
     distance?: number;
 }
 
@@ -57,6 +56,7 @@ interface Props {
     user: UserType;
     partners: Partner[];
     sports?: Sport[];
+    cities?: City[];
     filters?: {
         search?: string;
         sport?: string;
@@ -65,22 +65,20 @@ interface Props {
     };
 }
 
-export default function PartnerSearch({ user, partners = [], sports = [], filters = {} }: Props) {
+export default function PartnerSearch({ user, partners = [], sports = [], cities = [], filters = {} }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [showFilters, setShowFilters] = useState(false);
     const [selectedSport, setSelectedSport] = useState(filters.sport || '');
     const [selectedSkillLevel, setSelectedSkillLevel] = useState(filters.skill_level || '');
-    const [selectedDistance, setSelectedDistance] = useState(filters.max_distance || '');
+    const [selectedDistance, setSelectedDistance] = useState(filters.max_distance?.toString() || '');
     const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [localPartners, setLocalPartners] = useState(partners);
 
-    // Update local partners when partners prop changes
     React.useEffect(() => {
         setLocalPartners(partners);
     }, [partners]);
 
-    // Sync selectedPartner with localPartners changes
     React.useEffect(() => {
         if (selectedPartner) {
             const updatedPartner = localPartners.find(p => p.id === selectedPartner.id);
@@ -89,7 +87,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
             }
         }
     }, [localPartners, selectedPartner?.id]);
-
 
     const handleSearch = () => {
         router.get('/partners', {
@@ -107,6 +104,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
         setSearchTerm('');
         setSelectedSport('');
         setSelectedSkillLevel('');
+        setSelectedDistance('');
         router.get('/partners', {}, {
             preserveState: true,
             preserveScroll: true,
@@ -115,13 +113,11 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
 
     const visiblePartners = localPartners.filter(
         (partner) =>
-            !partner.profile?.is_admin && // exclude admins
+            !partner.profile?.is_admin &&
             (partner.friendship_status === 'none' || partner.friendship_status === 'pending_sent')
     );
 
-
     const sendFriendRequest = (partnerId: number) => {
-        // Optimistically update both local partners list and selected partner
         setLocalPartners(prev =>
             prev.map(partner =>
                 partner.id === partnerId
@@ -130,7 +126,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
             )
         );
 
-
         if (selectedPartner && selectedPartner.id === partnerId) {
             setSelectedPartner(prev => prev ? {
                 ...prev,
@@ -138,11 +133,9 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
             } : null);
         }
 
-        // Send the actual request
         router.post(`/friends/request/${partnerId}`, {}, {
             preserveScroll: true,
             onError: (errors) => {
-                // Revert the optimistic update on error
                 setLocalPartners(prev =>
                     prev.map(partner =>
                         partner.id === partnerId
@@ -217,12 +210,11 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                 {/* Search and Filters */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
                     <div className="flex flex-col md:flex-row gap-4">
-                        {/* Search Bar */}
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Meklēt pēc vārda vai atrašanās vietas..."
+                                placeholder="Meklēt pēc vārda vai pilsētas..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -230,7 +222,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                             />
                         </div>
 
-                        {/* Search Button */}
                         <button
                             onClick={handleSearch}
                             className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
@@ -238,7 +229,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                             Meklēt
                         </button>
 
-                        {/* Filter Button */}
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`flex items-center space-x-2 px-6 py-3 border rounded-lg transition-colors ${
@@ -250,7 +240,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                         </button>
                     </div>
 
-                    {/* Filters Panel */}
                     {showFilters && (
                         <div className="mt-6 pt-6 border-t border-gray-200">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,6 +260,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Prasmes līmenis
@@ -286,7 +276,27 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         <option value="advanced">Pieredzējis</option>
                                     </select>
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="w-4 h-4 inline mr-1" />
+                                        Attālums (km)
+                                    </label>
+                                    <select
+                                        value={selectedDistance}
+                                        onChange={(e) => setSelectedDistance(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                    >
+                                        <option value="">Jebkurš attālums</option>
+                                        <option value="5">Līdz 5 km</option>
+                                        <option value="10">Līdz 10 km</option>
+                                        <option value="25">Līdz 25 km</option>
+                                        <option value="50">Līdz 50 km</option>
+                                        <option value="100">Līdz 100 km</option>
+                                    </select>
+                                </div>
                             </div>
+
                             <div className="mt-4 flex justify-between">
                                 <button
                                     onClick={clearFilters}
@@ -307,12 +317,9 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
 
                 {/* Results */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
                     {visiblePartners.length > 0 ? (
                         visiblePartners.map(partner => (
-
                             <div key={partner.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all">
-                                {/* Profile Image Section */}
                                 <div
                                     className="relative h-48 bg-gray-100 cursor-pointer group"
                                     onClick={() => openPartnerModal(partner)}
@@ -325,7 +332,6 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                             alt={`${partner.name} ${partner.lastname || ''}`}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             onError={(e) => {
-                                                console.error('Image failed to load:', partner.profile?.main_photo);
                                                 e.currentTarget.style.display = 'none';
                                             }}
                                         />
@@ -339,14 +345,12 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                             {partner.distance} km
                                         </div>
                                     )}
-                                    {/* View Profile Overlay */}
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:scale-105 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                                         <span className="text-white font-medium">Skatīt profilu</span>
                                     </div>
                                 </div>
 
                                 <div className="p-4">
-                                    {/* Name and Location */}
                                     <div className="mb-3">
                                         <div className="flex items-center gap-2">
                                             <h3 className="font-semibold text-lg text-gray-900">
@@ -354,7 +358,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                             </h3>
                                             {partner.profile?.is_verified && (
                                                 <VerifiedBadge size="sm" />
-                                                )}
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                                             {partner.profile?.age && (
@@ -369,14 +373,12 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         </div>
                                     </div>
 
-                                    {/* Bio */}
                                     {partner.profile?.bio && (
                                         <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                                             {partner.profile.bio}
                                         </p>
                                     )}
 
-                                    {/* Sports */}
                                     {partner.sports && partner.sports.length > 0 && (
                                         <div className="mb-4">
                                             <div className="flex flex-wrap gap-1">
@@ -384,9 +386,9 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                                     <div key={sport.id} className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
                                                         <span>{sport.icon}</span>
                                                         <span className="text-gray-700">{sport.name}</span>
-                                                        {sport.pivot?.is_preferred ? (
+                                                        {sport.pivot?.is_preferred && (
                                                             <Star className="w-3 h-3 text-yellow-500" fill="currentColor" />
-                                                        ):null}
+                                                        )}
                                                     </div>
                                                 ))}
                                                 {partner.sports.length > 3 && (
@@ -398,31 +400,28 @@ export default function PartnerSearch({ user, partners = [], sports = [], filter
                                         </div>
                                     )}
 
-                                    {/* Action Button */}
                                     {getFriendshipButton(partner)}
                                 </div>
                             </div>
                         ))
                     ) : (
-
-                    <div className="col-span-full text-center py-16">
-                        <Search className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 mb-2">Nav atrasti partneri</h3>
-                        <p className="text-gray-600 mb-6">
-                            Izmēģini mainīt meklēšanas kritērijus vai filtrus
-                        </p>
-                        <button
-                            onClick={clearFilters}
-                            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                        >
-                            Notīrīt filtrus
-                        </button>
-                    </div>
+                        <div className="col-span-full text-center py-16">
+                            <Search className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-xl font-medium text-gray-900 mb-2">Nav atrasti partneri</h3>
+                            <p className="text-gray-600 mb-6">
+                                Izmēģini mainīt meklēšanas kritērijus vai filtrus
+                            </p>
+                            <button
+                                onClick={clearFilters}
+                                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                            >
+                                Notīrīt filtrus
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* Partner Profile Modal */}
             {selectedPartner && (
                 <PartnerProfileModal
                     partner={selectedPartner}

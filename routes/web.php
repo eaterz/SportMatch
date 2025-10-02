@@ -70,7 +70,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::post('/cancel/{receiver}', 'cancelRequest')->name('cancel');
 
             // Remove friend
-            Route::delete('/remove/{friend}', 'removeFriend')->name('remove');
+            Route::post('/remove/{friend}', 'removeFriend')->name('remove');
         });
 
 

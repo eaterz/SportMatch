@@ -83,7 +83,7 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
 
     const removeFriend = (friendId: number) => {
         if (confirm('Vai tiešām vēlies noņemt šo draugu?')) {
-            router.delete(`/friends/remove/${friendId}`, {
+            router.post(`/friends/remove/${friendId}`, {}, {
                 preserveScroll: true,
             });
         }

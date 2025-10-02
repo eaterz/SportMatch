@@ -27,8 +27,8 @@ class AdminSeeder extends Seeder
             'birth_date' => '1990-01-01',
             'phone' => '+37112345678',
             'gender' => 'male',
-            'location' => 'Rīga',
             'bio' => 'SportMatch Administrator',
+            'city_id' => 1,
             'is_verified' => true,
             'verified_at' => now(),
             'verification_method' => 'manual'
