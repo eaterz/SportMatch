@@ -386,9 +386,9 @@ export default function PartnerSearch({ user, partners = [], sports = [], cities
                                                     <div key={sport.id} className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
                                                         <span>{sport.icon}</span>
                                                         <span className="text-gray-700">{sport.name}</span>
-                                                        {sport.pivot?.is_preferred && (
+                                                        {sport.pivot?.is_preferred ? (
                                                             <Star className="w-3 h-3 text-yellow-500" fill="currentColor" />
-                                                        )}
+                                                        ):null}
                                                     </div>
                                                 ))}
                                                 {partner.sports.length > 3 && (

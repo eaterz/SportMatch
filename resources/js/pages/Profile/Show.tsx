@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Shield, CheckCircle, Clock, AlertTriangle, Search } from 'lucide-react';
+import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Search } from 'lucide-react';
 import Navbar from '@/components/navbar';
 
 interface City {
