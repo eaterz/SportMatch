@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Upload, MapPin, Users, Lock, Globe, Plus, X } from 'lucide-react';
+import { ArrowLeft, Upload, MapPin, Users, Lock, Globe, Plus, X, Search } from 'lucide-react';
 
 interface Sport {
     id: number;
     name: string;
     icon: string;
+}
+
+interface City {
+    id: number;
+    name: string;
+    region: string;
 }
 
 interface SportSelection {
@@ -15,13 +21,14 @@ interface SportSelection {
 
 interface Props {
     sports: Sport[];
+    cities: City[];
 }
 
-export default function GroupsCreate({ sports = [] }: Props) {
+export default function GroupsCreate({ sports = [], cities = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
-        location: '',
+        city_id: null as number | null,
         max_members: '',
         is_private: false,
         sports: [] as SportSelection[],
@@ -29,6 +36,15 @@ export default function GroupsCreate({ sports = [] }: Props) {
     });
 
     const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null);
+    const [searchCity, setSearchCity] = useState('');
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
+
+    const filteredCities = cities.filter(city =>
+        city.name.toLowerCase().includes(searchCity.toLowerCase()) ||
+        city.region.toLowerCase().includes(searchCity.toLowerCase())
+    );
+
+    const selectedCity = cities.find(c => c.id === data.city_id);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,7 +52,9 @@ export default function GroupsCreate({ sports = [] }: Props) {
         const formData = new FormData();
         formData.append('name', data.name);
         formData.append('description', data.description);
-        formData.append('location', data.location);
+        if (data.city_id) {
+            formData.append('city_id', data.city_id.toString());
+        }
         formData.append('max_members', data.max_members);
         formData.append('is_private', data.is_private ? '1' : '0');
 
@@ -91,7 +109,6 @@ export default function GroupsCreate({ sports = [] }: Props) {
             <Head title="Izveidot grupu - SportMatch" />
 
             <div className="max-w-3xl mx-auto px-4 py-8">
-                {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <button
                         onClick={() => router.get('/groups')}
@@ -105,8 +122,8 @@ export default function GroupsCreate({ sports = [] }: Props) {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Cover foto */}
+                <div className="space-y-6">
+                    {/* Cover Photo */}
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                         <label className="block text-sm font-medium text-gray-700 mb-4">
                             Grupas attēls
@@ -138,12 +155,12 @@ export default function GroupsCreate({ sports = [] }: Props) {
                         )}
                     </div>
 
-                    {/* Pamatinformācija */}
+                    {/* Basic Info */}
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Pamatinformācija</h2>
 
                         <div className="space-y-4">
-                            {/* Nosaukums */}
+                            {/* Name */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Grupas nosaukums *
@@ -162,7 +179,7 @@ export default function GroupsCreate({ sports = [] }: Props) {
                                 )}
                             </div>
 
-                            {/* Apraksts */}
+                            {/* Description */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Apraksts
@@ -183,26 +200,70 @@ export default function GroupsCreate({ sports = [] }: Props) {
                                 )}
                             </div>
 
-                            {/* Atrašanās vieta */}
+                            {/* City */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     <MapPin className="inline w-4 h-4 mr-1" />
-                                    Atrašanās vieta
+                                    Pilsēta *
                                 </label>
-                                <input
-                                    type="text"
-                                    value={data.location}
-                                    onChange={e => setData('location', e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
-                                    placeholder="Rīga, Latvija"
-                                    maxLength={100}
-                                />
-                                {errors.location && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+                                <div className="relative">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={selectedCity ? selectedCity.name : searchCity}
+                                            onChange={(e) => {
+                                                setSearchCity(e.target.value);
+                                                setShowCityDropdown(true);
+                                                if (!e.target.value) {
+                                                    setData('city_id', null);
+                                                }
+                                            }}
+                                            onFocus={() => setShowCityDropdown(true)}
+                                            placeholder="Meklēt pilsētu..."
+                                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                        />
+                                    </div>
+
+                                    {showCityDropdown && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-10"
+                                                onClick={() => setShowCityDropdown(false)}
+                                            />
+                                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                {filteredCities.length > 0 ? (
+                                                    filteredCities.map(city => (
+                                                        <div
+                                                            key={city.id}
+                                                            onClick={() => {
+                                                                setData('city_id', city.id);
+                                                                setSearchCity(city.name);
+                                                                setShowCityDropdown(false);
+                                                            }}
+                                                            className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                                                data.city_id === city.id ? 'bg-blue-50' : ''
+                                                            }`}
+                                                        >
+                                                            <div className="font-medium text-gray-900">{city.name}</div>
+                                                            <div className="text-sm text-gray-500">{city.region} reģions</div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-2 text-gray-500 text-sm">
+                                                        Nav atrasta pilsēta
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                {errors.city_id && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.city_id}</p>
                                 )}
                             </div>
 
-                            {/* Maksimālais dalībnieku skaits */}
+                            {/* Max Members */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     <Users className="inline w-4 h-4 mr-1" />
@@ -225,7 +286,7 @@ export default function GroupsCreate({ sports = [] }: Props) {
                                 )}
                             </div>
 
-                            {/* Privātums */}
+                            {/* Privacy */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Grupas tips
@@ -261,13 +322,12 @@ export default function GroupsCreate({ sports = [] }: Props) {
                         </div>
                     </div>
 
-                    {/* Sporta veidi */}
+                    {/* Sports */}
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">
                             Sporta veidi *
                         </h2>
 
-                        {/* Izvēlētie sporta veidi */}
                         {data.sports.length > 0 && (
                             <div className="space-y-2 mb-4">
                                 {data.sports.map(sport => {
@@ -301,7 +361,6 @@ export default function GroupsCreate({ sports = [] }: Props) {
                             </div>
                         )}
 
-                        {/* Sporta veidu izvēle */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {sports.map(sport => {
                                 const isSelected = data.sports.find(s => s.id === sport.id);
@@ -335,7 +394,7 @@ export default function GroupsCreate({ sports = [] }: Props) {
                         )}
                     </div>
 
-                    {/* Pogas */}
+                    {/* Buttons */}
                     <div className="flex gap-3 pt-4">
                         <button
                             type="button"
@@ -346,15 +405,16 @@ export default function GroupsCreate({ sports = [] }: Props) {
                             Atcelt
                         </button>
                         <button
-                            type="submit"
-                            disabled={processing || data.sports.length === 0 || !data.name.trim()}
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={processing || data.sports.length === 0 || !data.name.trim() || !data.city_id}
                             className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {processing ? 'Izveido...' : 'Izveidot grupu'}
                         </button>
                     </div>
 
-                    {/* Kļūdu ziņojumi */}
+                    {/* Errors */}
                     {Object.keys(errors).length > 0 && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                             <h3 className="text-sm font-medium text-red-800 mb-2">
@@ -367,7 +427,7 @@ export default function GroupsCreate({ sports = [] }: Props) {
                             </ul>
                         </div>
                     )}
-                </form>
+                </div>
             </div>
         </div>
     );

@@ -17,7 +17,7 @@ class Group extends Model
         'description',
         'creator_id',
         'cover_photo',
-        'location',
+        'city_id',
         'max_members',
         'is_private',
         'is_active'

@@ -18,7 +18,7 @@ class GroupEvent extends Model
         'creator_id',
         'title',
         'description',
-        'location',
+        'city_id',
         'event_date',
         'duration',
         'max_participants',

@@ -341,7 +341,7 @@ const PartnerProfileModal: React.FC<PartnerProfileModalProps> = ({
 
                             {/* Distance Badge */}
                             {partner.distance && (
-                                <div className="absolute top-6 right-20 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                                <div className="absolute top-6 right-20 bg-black text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
                                     {partner.distance} km
                                 </div>
                             )}

@@ -102,13 +102,11 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
         }
     };
 
-    // Render friend row (Instagram-style)
     const renderFriendRow = (friend: Friend) => (
-        <div key={friend.id} className="bg-white border border-gray-200 rounded-lg mb-2 p-3 relative">
+        <div key={friend.id} className="bg-white border-2 border-gray-100 rounded-xl p-4 relative hover:border-gray-300 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
-                {/* Left side: Profile photo and name */}
-                <div className="flex items-center space-x-3">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                <div className="flex items-center space-x-4">
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                         {friend.profile?.main_photo ? (
                             <img
                                 src={friend.profile.main_photo}
@@ -119,48 +117,43 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                                 }}
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                <User className="w-6 h-6 text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center">
+                                <User className="w-7 h-7 text-gray-400" />
                             </div>
                         )}
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-gray-900">
                                 {friend.name} {friend.lastname || ''}
                             </h3>
                             {friend.profile?.is_verified && (
                                 <VerifiedBadge size="sm" />
                             )}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center">
-                            {friend.profile?.location && (
-                                <div className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    <span>{friend.profile.location}</span>
-                                </div>
-                            )}
-                        </div>
+                        {friend.profile?.location && (
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span className="font-medium">{friend.profile.location}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right side: Chat button and settings */}
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={() => startChat(friend.id)}
-                        className="bg-black text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
+                        className="bg-black text-white p-2.5 rounded-full hover:bg-gray-800 transition-all duration-300 transform hover:scale-110"
                         aria-label="Chat"
                     >
                         <MessageCircle className="w-5 h-5" />
                     </button>
 
-                    {/* Settings button with its dropdown */}
                     <div className="relative">
                         <button
                             onClick={() => toggleFriendSettings(friend.id)}
-                            className="text-gray-500 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                            className="text-gray-500 p-2.5 rounded-full hover:bg-gray-100 transition-colors"
                             aria-label="Settings"
-                            id={`settings-btn-${friend.id}`}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="1" />
@@ -172,18 +165,17 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                 </div>
             </div>
 
-            {/* Settings dropdown positioned significantly higher to ensure visibility */}
             {friendSettingsOpen === friend.id && (
                 <div
-                    className="absolute bg-white rounded-lg shadow-xl border border-gray-200 z-50 w-48"
+                    className="absolute bg-white rounded-xl shadow-2xl border-2 border-gray-200 z-50 w-52"
                     style={{
-                        top: '-35px',
+                        top: '-40px',
                         right: '15px'
                     }}
                 >
                     <button
                         onClick={() => removeFriend(friend.id)}
-                        className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 flex items-center space-x-2 font-medium rounded-lg"
+                        className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 flex items-center space-x-2 font-semibold rounded-xl"
                     >
                         <Trash2 className="w-4 h-4" />
                         <span>Noņemt draugu</span>
@@ -193,13 +185,11 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
         </div>
     );
 
-    // Render pending request row
     const renderPendingRow = (friend: Friend, type: 'received' | 'sent') => (
-        <div key={friend.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-sm transition-all mb-2 p-3">
+        <div key={friend.id} className="bg-white border-2 border-gray-100 rounded-xl p-4 hover:border-gray-300 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
-                {/* Left side: Profile photo and name */}
-                <div className="flex items-center space-x-3">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                <div className="flex items-center space-x-4">
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                         {friend.profile?.main_photo ? (
                             <img
                                 src={friend.profile.main_photo}
@@ -210,40 +200,37 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                                 }}
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                <User className="w-6 h-6 text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center">
+                                <User className="w-7 h-7 text-gray-400" />
                             </div>
                         )}
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-bold text-gray-900 mb-1">
                             {friend.name} {friend.lastname || ''}
                         </h3>
-                        <div className="text-xs text-gray-500 flex items-center">
-                            {friend.profile?.location && (
-                                <div className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    <span>{friend.profile.location}</span>
-                                </div>
-                            )}
-                        </div>
+                        {friend.profile?.location && (
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span className="font-medium">{friend.profile.location}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right side: Action buttons */}
                 <div className="flex items-center space-x-2">
                     {type === 'received' ? (
                         <>
                             <button
                                 onClick={() => acceptRequest(friend.id)}
-                                className="bg-green-100 text-green-700 p-2 rounded-full hover:bg-green-200 transition-colors"
+                                className="bg-green-100 text-green-700 p-2.5 rounded-full hover:bg-green-200 transition-all duration-300 transform hover:scale-110"
                                 aria-label="Accept"
                             >
                                 <Check className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={() => rejectRequest(friend.id)}
-                                className="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 transition-colors"
+                                className="bg-red-100 text-red-600 p-2.5 rounded-full hover:bg-red-200 transition-all duration-300 transform hover:scale-110"
                                 aria-label="Reject"
                             >
                                 <X className="w-5 h-5" />
@@ -252,7 +239,7 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                     ) : (
                         <button
                             onClick={() => cancelRequest(friend.id)}
-                            className="bg-gray-100 text-gray-600 p-2 rounded-full hover:bg-gray-200 transition-colors"
+                            className="bg-gray-100 text-gray-600 p-2.5 rounded-full hover:bg-gray-200 transition-all duration-300 transform hover:scale-110"
                             aria-label="Cancel"
                         >
                             <X className="w-5 h-5" />
@@ -267,16 +254,18 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
         switch (activeTab) {
             case 'friends':
                 return filteredFriends.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                         {filteredFriends.map(friend => renderFriendRow(friend))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <Users className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 mb-2">
+                    <div className="text-center py-20">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Users className="w-12 h-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3">
                             {searchTerm ? 'Nav atrasti draugi' : 'Tev vēl nav draugu'}
                         </h3>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-gray-600 mb-8 text-lg">
                             {searchTerm
                                 ? 'Izmēģini citu meklēšanas terminu'
                                 : 'Atrodi cilvēkus partneru meklēšanā un sūti viņiem draudzības pieprasījumus'
@@ -285,7 +274,7 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                         {!searchTerm && (
                             <button
                                 onClick={() => router.get('/partners')}
-                                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                                className="bg-black text-white px-8 py-3.5 rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
                             >
                                 Meklēt partnerus
                             </button>
@@ -295,84 +284,90 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
 
             case 'received':
                 return pendingReceived.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                         {pendingReceived.map(friend => renderPendingRow(friend, 'received'))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <UserPlus className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 mb-2">Nav jaunu pieprasījumu</h3>
-                        <p className="text-gray-600">Jaunie draudzības pieprasījumi parādīsies šeit</p>
+                    <div className="text-center py-20">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <UserPlus className="w-12 h-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3">Nav jaunu pieprasījumu</h3>
+                        <p className="text-gray-600 text-lg">Jaunie draudzības pieprasījumi parādīsies šeit</p>
                     </div>
                 );
 
             case 'sent':
                 return pendingSent.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                         {pendingSent.map(friend => renderPendingRow(friend, 'sent'))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <Clock className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 mb-2">Nav nosūtītu pieprasījumu</h3>
-                        <p className="text-gray-600">Nosūtītie draudzības pieprasījumi parādīsies šeit</p>
+                    <div className="text-center py-20">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Clock className="w-12 h-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3">Nav nosūtītu pieprasījumu</h3>
+                        <p className="text-gray-600 text-lg">Nosūtītie draudzības pieprasījumi parādīsies šeit</p>
                     </div>
                 );
         }
     };
 
-    // The rest of the component remains the same
     return (
         <div className="min-h-screen bg-gray-50">
             <Head title="Draugi - SportMatch" />
             <Navbar user={user} />
 
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Draugi</h1>
-                    <p className="text-gray-600">Pārvalda savus draugus un draudzības pieprasījumus</p>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+                <div className="mb-10">
+                    <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">Draugi</h1>
+                    <p className="text-xl text-gray-600">Pārvalda savus draugus un draudzības pieprasījumus</p>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-10">
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div className="flex items-center">
-                            <Users className="w-8 h-8 text-gray-600" />
+                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                                <Users className="w-6 h-6 text-gray-700" />
+                            </div>
                             <div className="ml-4">
-                                <p className="text-2xl font-bold text-gray-900">{friends.length}</p>
-                                <p className="text-sm text-gray-600">Draugi</p>
+                                <p className="text-3xl font-bold text-gray-900">{friends.length}</p>
+                                <p className="text-sm font-medium text-gray-600">Draugi</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div className="flex items-center">
-                            <UserPlus className="w-8 h-8 text-gray-600" />
+                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                                <UserPlus className="w-6 h-6 text-gray-700" />
+                            </div>
                             <div className="ml-4">
-                                <p className="text-2xl font-bold text-gray-900">{pendingReceived.length}</p>
-                                <p className="text-sm text-gray-600">Jauni pieprasījumi</p>
+                                <p className="text-3xl font-bold text-gray-900">{pendingReceived.length}</p>
+                                <p className="text-sm font-medium text-gray-600">Jauni pieprasījumi</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div className="flex items-center">
-                            <Clock className="w-8 h-8 text-gray-600" />
+                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                                <Clock className="w-6 h-6 text-gray-700" />
+                            </div>
                             <div className="ml-4">
-                                <p className="text-2xl font-bold text-gray-900">{pendingSent.length}</p>
-                                <p className="text-sm text-gray-600">Nosūtīti</p>
+                                <p className="text-3xl font-bold text-gray-900">{pendingSent.length}</p>
+                                <p className="text-sm font-medium text-gray-600">Nosūtīti</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="bg-white border border-gray-200 rounded-lg mb-8">
-                    <div className="flex border-b border-gray-200">
+                <div className="bg-white rounded-2xl shadow-lg mb-8">
+                    <div className="flex border-b-2 border-gray-100">
                         <button
                             onClick={() => setActiveTab('friends')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                            className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-300 ${
                                 activeTab === 'friends'
-                                    ? 'text-black border-b-2 border-black'
+                                    ? 'text-black border-b-4 border-black'
                                     : 'text-gray-600 hover:text-black'
                             }`}
                         >
@@ -380,24 +375,24 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                         </button>
                         <button
                             onClick={() => setActiveTab('received')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors relative ${
+                            className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-300 relative ${
                                 activeTab === 'received'
-                                    ? 'text-black border-b-2 border-black'
+                                    ? 'text-black border-b-4 border-black'
                                     : 'text-gray-600 hover:text-black'
                             }`}
                         >
                             Pieprasījumi ({pendingReceived.length})
                             {pendingReceived.length > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                                     {pendingReceived.length}
                                 </span>
                             )}
                         </button>
                         <button
                             onClick={() => setActiveTab('sent')}
-                            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                            className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-300 ${
                                 activeTab === 'sent'
-                                    ? 'text-black border-b-2 border-black'
+                                    ? 'text-black border-b-4 border-black'
                                     : 'text-gray-600 hover:text-black'
                             }`}
                         >
@@ -405,25 +400,23 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
                         </button>
                     </div>
 
-                    {/* Search bar - only show for friends tab */}
                     {activeTab === 'friends' && friends.length > 0 && (
-                        <div className="p-6 border-b border-gray-200">
+                        <div className="p-6 border-b-2 border-gray-100">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <input
                                     type="text"
                                     placeholder="Meklēt draugus..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                    className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 transition-colors font-medium"
                                 />
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Content */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="bg-white rounded-2xl shadow-lg p-6">
                     {getTabContent()}
                 </div>
             </div>

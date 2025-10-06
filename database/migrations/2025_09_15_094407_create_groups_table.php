@@ -17,9 +17,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->foreignId('creator_id')->constrained('users')->onDelete('cascade');
             $table->string('cover_photo')->nullable();
-            $table->string('location')->nullable();
-            $table->integer('max_members')->nullable(); // Maksimālais dalībnieku skaits
-            $table->boolean('is_private')->default(false); // Vai grupa ir privāta
+            $table->integer('max_members')->nullable();
+            $table->boolean('is_private')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
@@ -59,7 +58,7 @@ return new class extends Migration
             $table->foreignId('creator_id')->constrained('users')->onDelete('cascade');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('location');
+            $table->foreignId('city_id')->nullable()->constrained()->nullOnDelete();
             $table->datetime('event_date');
             $table->time('duration')->nullable(); // Ilgums
             $table->integer('max_participants')->nullable();
@@ -70,6 +69,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['group_id', 'event_date']);
+            $table->index('city_id');
             $table->index('status');
         });
 

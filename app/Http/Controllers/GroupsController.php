@@ -6,6 +6,7 @@ use App\Events\GroupCommentAdded;
 use App\Events\GroupPostCreated;
 use App\Events\GroupPostDeleted;
 use App\Events\GroupPostLiked;
+use App\Models\City;
 use App\Models\Group;
 use App\Models\GroupEvent;
 use App\Models\GroupPost;
@@ -91,9 +92,11 @@ class GroupsController extends Controller
     public function create()
     {
         $sports = Sport::where('is_active', true)->get();
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
 
         return Inertia::render('Groups/Create', [
-            'sports' => $sports
+            'sports' => $sports,
+            'cities' => $cities
         ]);
     }
 
@@ -103,7 +106,7 @@ class GroupsController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
-            'location' => 'nullable|string|max:100',
+            'city_id' => 'required|exists:cities,id',
             'max_members' => 'nullable|integer|min:2|max:100',
             'is_private' => 'boolean',
             'sports' => 'required|array|min:1',
@@ -119,7 +122,7 @@ class GroupsController extends Controller
             'name' => $request->name,
             'description' => $request->description,
             'creator_id' => $user->id,
-            'location' => $request->location,
+            'city_id' => $request->city_id,
             'max_members' => $request->max_members,
             'is_private' => $request->is_private ?? false,
             'is_active' => true
@@ -531,10 +534,12 @@ class GroupsController extends Controller
         if (!$group->isMember($user)) {
             return back()->with('error', 'Tikai grupas dalībnieki var izveidot pasākumus');
         }
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
 
         return Inertia::render('Groups/CreateEvent', [
             'user' => $user,
-            'group' => $group
+            'group' => $group,
+            'cities' => $cities
         ]);
     }
 
@@ -550,7 +555,7 @@ class GroupsController extends Controller
         $request->validate([
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:1000',
-            'location' => 'required|string|max:200',
+            'city_id' => 'required|exists:cities,id',
             'event_date' => 'required|date|after:now',
             'duration' => 'nullable|numeric|min:0.5|max:12',
             'max_participants' => 'nullable|integer|min:2|max:200',
@@ -564,7 +569,7 @@ class GroupsController extends Controller
             'creator_id' => $user->id,
             'title' => $request->input('title'),
             'description' => $request->input('description'),
-            'location' => $request->input('location'),
+            'city_id' => $request->input('city_id'),
             'event_date' => $request->input('event_date'),
             'duration' => $request->input('duration'),
             'max_participants' => $request->input('max_participants'),
@@ -701,7 +706,7 @@ class GroupsController extends Controller
         $request->validate([
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:1000',
-            'location' => 'required|string|max:200',
+            'city_id' => 'required|exists:cities,id',
             'event_date' => 'required|date|after:now',
             'duration' => 'nullable|numeric|min:0.5|max:12',
             'max_participants' => 'nullable|integer|min:2|max:200',
@@ -713,7 +718,7 @@ class GroupsController extends Controller
         $event->update([
             'title' => $request->input('title'),
             'description' => $request->input('description'),
-            'location' => $request->input('location'),
+            'city_id' => $request->input('city_id'),
             'event_date' => $request->input('event_date'),
             'duration' => $request->input('duration'),
             'max_participants' => $request->input('max_participants'),
@@ -805,7 +810,7 @@ class GroupsController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
-            'location' => 'nullable|string|max:100',
+            'city_id' => 'required|exists:cities,id',
             'max_members' => 'nullable|integer|min:' . $group->approvedMembers()->count() . '|max:500',
             'is_private' => 'boolean',
             'sports' => 'required|array|min:1',
@@ -818,7 +823,7 @@ class GroupsController extends Controller
         $group->update([
             'name' => $request->input('name'),
             'description' => $request->input('description'),
-            'location' => $request->input('location'),
+            'city_id' => $request->input('city_id'),
             'max_members' => $request->input('max_members'),
             'is_private' => $request->input('is_private', false)
         ]);
