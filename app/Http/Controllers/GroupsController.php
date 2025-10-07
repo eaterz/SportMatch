@@ -158,8 +158,12 @@ class GroupsController extends Controller
         $user = Auth::user();
 
 
-        $group->load(['creator', 'sports']);
+        $group->load(['creator', 'sports', 'city']);
+
         $group->loadCount('approvedMembers');
+
+        $cities = \App\Models\City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
 
 
         $group->is_member = $group->isMember($user);
@@ -226,7 +230,7 @@ class GroupsController extends Controller
 
 
         $upcomingEvents = $group->upcomingEvents()
-            ->with('creator')
+            ->with(['creator', 'city'])
             ->withCount('confirmedParticipants')
             ->limit(5)
             ->get()
@@ -234,6 +238,8 @@ class GroupsController extends Controller
                 $event->is_participating = $event->isParticipating($user);
                 return $event;
             });
+
+
 
 
         return Inertia::render('Groups/Show', [
@@ -244,6 +250,7 @@ class GroupsController extends Controller
             'upcomingEvents' => $upcomingEvents,
             'pusherKey' => config('broadcasting.connections.pusher.key'),
             'pusherCluster' => config('broadcasting.connections.pusher.options.cluster'),
+            'cities' => $cities
         ]);
     }
 
@@ -500,7 +507,7 @@ class GroupsController extends Controller
         $upcomingEvents = $group->events()
             ->where('event_date', '>=', now())
             ->where('status', 'upcoming')
-            ->with(['creator'])
+            ->with(['creator', 'city'])
             ->withCount('confirmedParticipants')
             ->orderBy('event_date')
             ->get()
@@ -511,18 +518,21 @@ class GroupsController extends Controller
 
         $pastEvents = $group->events()
             ->where('event_date', '<', now())
-            ->with(['creator'])
+            ->with(['creator', 'city'])
             ->withCount('confirmedParticipants')
             ->orderBy('event_date', 'desc')
             ->limit(10)
             ->get();
+
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
 
         return Inertia::render('Groups/Events', [
             'user' => $user,
             'group' => $group,
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,
-            'is_admin' => $group->isAdmin($user)
+            'is_admin' => $group->isAdmin($user),
+            'cities' => $cities,
         ]);
     }
 
@@ -601,8 +611,11 @@ class GroupsController extends Controller
             return back()->with('error', 'Pasākums nav no šīs grupas');
         }
 
-        $event->load(['creator', 'confirmedParticipants.profile']);
+        $event->load(['creator', 'confirmedParticipants.profile', 'city']);
         $event->loadCount('confirmedParticipants');
+
+        $cities = \App\Models\City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
 
         $event->is_participating = $event->isParticipating($user);
         $event->is_creator = $event->creator_id === $user->id;
@@ -630,7 +643,8 @@ class GroupsController extends Controller
             'user' => $user,
             'group' => $group,
             'event' => $event,
-            'participants' => $participants
+            'participants' => $participants,
+            'cities' => $cities
         ]);
     }
 
@@ -686,6 +700,30 @@ class GroupsController extends Controller
         return back()->with('success', 'Jūs vairs nepiedalāties pasākumā');
     }
 
+    public function editEvent(Group $group, GroupEvent $event)
+    {
+        $user = Auth::user();
+
+        if (!$group->isMember($user)) {
+            return back()->with('error', 'Nav tiesību');
+        }
+
+        if ($event->creator_id !== $user->id && !$group->isAdmin($user)) {
+            return back()->with('error', 'Nav tiesību rediģēt šo pasākumu');
+        }
+
+        $event->loadCount('confirmedParticipants');
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
+        return Inertia::render('Groups/EditEvent', [
+            'user' => $user,
+            'group' => $group,
+            'event' => $event,
+            'cities' => $cities
+        ]);
+    }
+
+
 
     public function updateEvent(Request $request, Group $group, GroupEvent $event)
     {
@@ -725,29 +763,10 @@ class GroupsController extends Controller
             'price' => $request->input('price')
         ]);
 
-        return back()->with('success', 'Pasākums atjaunināts!');
+        return redirect()->route('groups.events.show', [$group, $event])
+            ->with('success', 'Pasākums atjaunināts');
     }
 
-    public function editEvent(Group $group, GroupEvent $event)
-    {
-        $user = Auth::user();
-
-        if (!$group->isMember($user)) {
-            return back()->with('error', 'Nav tiesību');
-        }
-
-        if ($event->creator_id !== $user->id && !$group->isAdmin($user)) {
-            return back()->with('error', 'Nav tiesību rediģēt šo pasākumu');
-        }
-
-        $event->loadCount('confirmedParticipants');
-
-        return Inertia::render('Groups/EditEvent', [
-            'user' => $user,
-            'group' => $group,
-            'event' => $event
-        ]);
-    }
 
 
     public function destroyEvent(Group $group, GroupEvent $event)
@@ -790,10 +809,13 @@ class GroupsController extends Controller
             'upcoming_events' => $group->upcomingEvents()->count(),
         ];
 
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
         return Inertia::render('Groups/Settings', [
             'user' => $user,
             'group' => $group,
             'sports' => $sports,
+            'cities' => $cities,  // Add this
             'memberStats' => $memberStats
         ]);
     }

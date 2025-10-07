@@ -70,8 +70,12 @@ export default function Chat({
     const [newMessage, setNewMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sending, setSending] = useState(false);
-    const [currentFriend, setCurrentFriend] = useState<Friend | null>(selectedFriend);
+    const [currentFriendId, setCurrentFriendId] = useState<number | null>(selectedFriend?.id || null);
+    const [showMobileFriendsList, setShowMobileFriendsList] = useState(!selectedFriend);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Get current friend from friends list by ID
+    const currentFriend = currentFriendId ? friends.find(f => f.id === currentFriendId) : null;
 
     // Configure axios defaults
     useEffect(() => {
@@ -105,6 +109,22 @@ export default function Chat({
                 // Listen to chat messages
                 echoService.listenToChat(user.id, handleIncomingMessage);
 
+                // Join presence channel to track online users
+                echoService.joinPresenceChannel((onlineUserIds: number[]) => {
+                    console.log('Online users updated:', onlineUserIds);
+                    console.log('Current friends:', friends.map(f => f.id));
+
+                    // Update friends list with online status
+                    setFriends(prev => {
+                        const updated = prev.map(friend => ({
+                            ...friend,
+                            is_online: onlineUserIds.includes(friend.id)
+                        }));
+                        console.log('Updated friends with online status:', updated);
+                        return updated;
+                    });
+                });
+
                 console.log('Chat WebSocket initialized');
             } catch (error) {
                 console.error('Failed to initialize chat WebSocket:', error);
@@ -114,8 +134,9 @@ export default function Chat({
         initializeChat();
 
         return () => {
-            // Leave only the chat channel when component unmounts
+            // Leave channels when component unmounts
             echoService.leaveChannel(`chat.${user.id}`);
+            echoService.leavePresenceChannel();
         };
     }, [user.id, pusherKey, pusherCluster]);
 
@@ -123,6 +144,13 @@ export default function Chat({
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Hide friends list on mobile when friend is selected
+    useEffect(() => {
+        if (currentFriendId) {
+            setShowMobileFriendsList(false);
+        }
+    }, [currentFriendId]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,7 +161,7 @@ export default function Chat({
         const { message, sender_id, receiver_id } = data;
 
         // Update messages if this conversation is active
-        if (currentFriend && (currentFriend.id === sender_id || currentFriend.id === receiver_id)) {
+        if (currentFriendId && (currentFriendId === sender_id || currentFriendId === receiver_id)) {
             const newMsg: Message = {
                 id: message.id,
                 message: message.message,
@@ -143,7 +171,13 @@ export default function Chat({
                 is_read: false
             };
 
-            setMessages(prev => [...prev, newMsg]);
+            setMessages(prev => {
+                // Prevent duplicates
+                if (prev.some(m => m.id === newMsg.id)) {
+                    return prev;
+                }
+                return [...prev, newMsg];
+            });
 
             // Mark as read if receiving
             if (sender_id !== user.id) {
@@ -161,7 +195,7 @@ export default function Chat({
                         created_at: new Date().toISOString(),
                         is_sender: sender_id === user.id
                     },
-                    unread_count: friend.id === sender_id && currentFriend?.id !== sender_id
+                    unread_count: friend.id === sender_id && currentFriendId !== sender_id
                         ? friend.unread_count + 1
                         : friend.unread_count
                 };
@@ -171,7 +205,8 @@ export default function Chat({
     };
 
     const selectFriend = (friend: Friend) => {
-        setCurrentFriend(friend);
+        setCurrentFriendId(friend.id);
+        setShowMobileFriendsList(false);
         router.get(`/chat/${friend.id}`, {}, {
             preserveState: true,
             preserveScroll: true,
@@ -241,6 +276,12 @@ export default function Chat({
         }
     };
 
+    const handleBackToFriends = () => {
+        setShowMobileFriendsList(true);
+        setCurrentFriendId(null);
+        router.get('/chat', {}, { preserveState: true });
+    };
+
     const filteredFriends = friends.filter(friend =>
         `${friend.name} ${friend.lastname || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -264,25 +305,33 @@ export default function Chat({
         return dateStr;
     };
 
+
+
     return (
-        <div className="h-screen bg-gray-50 flex">
+        <div className="h-screen bg-gray-50 flex overflow-hidden">
             <Head title={currentFriend ? `Chat - ${currentFriend.name}` : 'Chat - SportMatch'} />
 
-            {/* Friends Sidebar */}
-            <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-
-                <div className="p-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">Čati</h2>
+            {/* Friends Sidebar - Desktop always visible, Mobile conditional */}
+            <div className={`
+                ${showMobileFriendsList ? 'flex' : 'hidden'}
+                md:flex
+                w-full md:w-80
+                bg-white
+                border-r border-gray-200
+                flex-col
+                absolute md:relative
+                inset-0 md:inset-auto
+                z-10 md:z-auto
+            `}>
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Čati</h2>
                         <a
                             href="/friends"
-                            className="group flex items-center mb-4 gap-3 rounded-2xl bg-white  transition-all duration-300 px-4 py-3"
+                            className="group flex items-center gap-3 rounded-2xl bg-white transition-all duration-300 px-4 py-3 hover:bg-gray-50"
                         >
-
-                            <DoorClosed className="h-7 w-7 text-gray-600 group-hover:hidden" />
-
-                            <DoorOpen className="h-7 w-7 text-black hidden group-hover:block" />
-
+                            <DoorClosed className="h-6 w-6 text-gray-600 group-hover:hidden" />
+                            <DoorOpen className="h-6 w-6 text-black hidden group-hover:block" />
                         </a>
                     </div>
 
@@ -306,7 +355,7 @@ export default function Chat({
                                 key={friend.id}
                                 onClick={() => selectFriend(friend)}
                                 className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                    currentFriend?.id === friend.id ? 'bg-gray-100' : ''
+                                    currentFriendId === friend.id ? 'bg-gray-100' : ''
                                 }`}
                             >
                                 <div className="relative flex-shrink-0">
@@ -357,11 +406,17 @@ export default function Chat({
 
             {/* Chat Area */}
             {currentFriend ? (
-                <div className="flex-1 flex flex-col">
-                    <div className="bg-white border-b border-gray-200 p-4 flex items-center">
+                <div className={`
+                    ${showMobileFriendsList ? 'hidden md:flex' : 'flex'}
+                    flex-1
+                    flex-col
+                    w-full
+                `}>
+                    {/* Chat Header */}
+                    <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center flex-shrink-0">
                         <button
-                            onClick={() => router.get('/friends')}
-                            className="md:hidden mr-3"
+                            onClick={handleBackToFriends}
+                            className="md:hidden mr-3 p-2 hover:bg-gray-100 rounded-full transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -378,8 +433,8 @@ export default function Chat({
                                 </div>
                             )}
                         </div>
-                        <div className="ml-3">
-                            <p className="font-semibold text-gray-900">
+                        <div className="ml-3 flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">
                                 {currentFriend.name} {currentFriend.lastname || ''}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -389,7 +444,7 @@ export default function Chat({
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-gray-50">
                         {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                             <div key={date}>
                                 <div className="text-center mb-4">
@@ -403,13 +458,13 @@ export default function Chat({
                                         className={`flex ${message.is_sender ? 'justify-end' : 'justify-start'} mb-2`}
                                     >
                                         <div
-                                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                                            className={`max-w-[75%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-2xl ${
                                                 message.is_sender
                                                     ? 'bg-black text-white'
                                                     : 'bg-white text-gray-900 border border-gray-200'
                                             }`}
                                         >
-                                            <p className="break-words">{message.message}</p>
+                                            <p className="break-words text-sm sm:text-base">{message.message}</p>
                                             <p className={`text-xs mt-1 ${
                                                 message.is_sender ? 'text-gray-300' : 'text-gray-500'
                                             }`}>
@@ -425,7 +480,7 @@ export default function Chat({
                     </div>
 
                     {/* Message Input */}
-                    <div className="bg-white border-t border-gray-200 p-4">
+                    <div className="bg-white border-t border-gray-200 p-3 sm:p-4 flex-shrink-0">
                         <div className="flex space-x-2">
                             <input
                                 type="text"
@@ -433,25 +488,32 @@ export default function Chat({
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Raksti ziņu..."
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-black"
+                                className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-full focus:outline-none focus:border-black"
                                 disabled={sending}
                             />
                             <button
                                 onClick={sendMessage}
                                 disabled={sending || !newMessage.trim()}
-                                className="bg-black text-white p-2 rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="bg-black text-white p-2 sm:p-2.5 rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             >
-                                <Send className="w-5 h-5" />
+                                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </div>
                     </div>
                 </div>
             ) : (
-                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className={`
+                    ${showMobileFriendsList ? 'hidden md:flex' : 'flex'}
+                    flex-1
+                    items-center
+                    justify-center
+                    bg-gray-50
+                    p-4
+                `}>
                     <div className="text-center">
-                        <User className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 mb-2">Izvēlies draugu</h3>
-                        <p className="text-gray-600">Izvēlies draugu no saraksta, lai sāktu čatot</p>
+                        <User className="w-16 h-16 sm:w-20 sm:h-20 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">Izvēlies draugu</h3>
+                        <p className="text-sm sm:text-base text-gray-600">Izvēlies draugu no saraksta, lai sāktu čatot</p>
                     </div>
                 </div>
             )}

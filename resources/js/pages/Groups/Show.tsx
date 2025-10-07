@@ -7,13 +7,20 @@ import {
 } from 'lucide-react';
 import echoService from '@/services/echo.js';
 
+interface City {
+    id: number;
+    name: string;
+    region: string;
+}
+
 interface User {
     id: number;
     name: string;
     lastname?: string;
     profile?: {
         main_photo?: string;
-        location?: string;
+        city_id?: number;
+        city?: City;
     };
 }
 
@@ -30,7 +37,8 @@ interface Group {
     id: number;
     name: string;
     description?: string;
-    location?: string;
+    city_id?: number;
+    city?: City;
     cover_photo_url?: string;
     is_private: boolean;
     max_members?: number;
@@ -80,7 +88,8 @@ interface Event {
     id: number;
     title: string;
     description?: string;
-    location: string;
+    city_id?: number;
+    city?: City;
     event_date: string;
     max_participants?: number;
     confirmed_participants_count: number;
@@ -93,10 +102,12 @@ interface Props {
     group: Group;
     approvedMembers: User[];
     posts: Post[];
+    cities: City[];
     upcomingEvents: Event[];
     pusherKey?: string;
     pusherCluster?: string;
 }
+
 
 export default function GroupsShow({
                                        user,
@@ -188,6 +199,8 @@ export default function GroupsShow({
         }
     };
 
+    console.log(group.city?.name);
+
     const handlePostSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         submitPost(`/groups/${group.id}/posts`, {
@@ -253,81 +266,84 @@ export default function GroupsShow({
         <div className="min-h-screen bg-gray-50">
             <Head title={`${group.name} - SportMatch`} />
 
-            {/* Cover & Header */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="relative h-48 md:h-64 bg-gray-100">
+            <div className="bg-white border-b-2 border-gray-200">
+                <div className="relative h-64 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                     {group.cover_photo_url ? (
-                        <img
-                            src={group.cover_photo_url}
-                            alt={group.name}
-                            className="w-full h-full object-cover"
-                        />
+                        <>
+                            {/* Main cover image with proper crop */}
+                            <img
+                                src={group.cover_photo_url}
+                                alt={group.name}
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Gradient overlay for better text readability */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                        </>
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100" />
+                        <div className="w-full h-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 opacity-80" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
                     {/* Back button */}
                     <Link
                         href="/groups"
-                        className="absolute top-4 left-4 p-2 bg-white/90 backdrop-blur rounded-lg hover:bg-white transition-colors"
+                        className="absolute top-4 left-4 p-3 bg-white/95 backdrop-blur-md rounded-xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 text-gray-900" />
                     </Link>
 
                     {/* Privacy badge */}
                     {group.is_private && (
-                        <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 rounded-full flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
+                        <div className="absolute top-4 right-4 bg-black/90 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg font-semibold">
+                            <Lock className="w-4 h-4" />
                             <span className="text-sm">Privāta</span>
                         </div>
                     )}
                 </div>
 
-                <div className="max-w-6xl mx-auto px-4 py-6">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                        <div className="flex-1">
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{group.name}</h1>
 
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                                {group.location && (
-                                    <div className="flex items-center gap-1">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                                {group.city && (
+                                    <div className="flex items-center gap-1.5">
                                         <MapPin className="w-4 h-4" />
-                                        <span>{group.location}</span>
+                                        <span className="font-medium">{group.city.name}</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4" />
-                                    <span>{group.approved_members_count} dalībnieki</span>
+                                    <span className="font-medium">{group.approved_members_count} dalībnieki</span>
                                     {group.max_members && (
-                                        <span className="text-gray-400">/ {group.max_members}</span>
+                                        <span className="text-gray-400 font-medium">/ {group.max_members}</span>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                     {group.is_private ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-                                    <span>{group.is_private ? 'Privāta' : 'Publiska'} grupa</span>
+                                    <span className="font-medium">{group.is_private ? 'Privāta' : 'Publiska'} grupa</span>
                                 </div>
                             </div>
 
                             {group.description && (
-                                <p className="text-gray-600 max-w-2xl">{group.description}</p>
+                                <p className="text-gray-700 max-w-2xl leading-relaxed">{group.description}</p>
                             )}
                         </div>
 
                         {/* Action buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-3">
                             {group.is_admin ? (
                                 <>
                                     <Link
                                         href={`/groups/${group.id}/settings`}
-                                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                        className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
                                     >
                                         <Settings className="w-4 h-4" />
                                         <span>Pārvaldīt</span>
                                     </Link>
                                     <Link
                                         href={`/groups/${group.id}/members`}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                        className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all duration-300 font-semibold"
                                     >
                                         Dalībnieki
                                     </Link>
@@ -336,13 +352,13 @@ export default function GroupsShow({
                                 <>
                                     <button
                                         onClick={handleLeaveGroup}
-                                        className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+                                        className="px-6 py-3 border-2 border-red-300 text-red-700 rounded-xl hover:bg-red-50 transition-all duration-300 font-semibold"
                                     >
                                         Pamest grupu
                                     </button>
                                     <Link
                                         href={`/groups/${group.id}/members`}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                        className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all duration-300 font-semibold"
                                     >
                                         Dalībnieki
                                     </Link>
@@ -350,14 +366,14 @@ export default function GroupsShow({
                             ) : group.has_pending_request ? (
                                 <button
                                     disabled
-                                    className="px-6 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
+                                    className="px-8 py-3 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed font-semibold"
                                 >
                                     Gaida apstiprinājumu
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleJoinGroup}
-                                    className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                    className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
                                 >
                                     <UserPlus className="w-4 h-4" />
                                     <span>Pievienoties</span>
@@ -368,15 +384,15 @@ export default function GroupsShow({
 
                     {/* Sports */}
                     {group.sports.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
+                        <div className="flex flex-wrap gap-2 mt-6">
                             {group.sports.map(sport => (
-                                <span key={sport.id} className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm">
-                                    <span>{sport.icon}</span>
-                                    <span>{sport.name}</span>
+                                <span key={sport.id} className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl text-sm font-medium">
+                        <span>{sport.icon}</span>
+                        <span>{sport.name}</span>
                                     {sport.pivot?.skill_level && sport.pivot.skill_level !== 'all' && (
                                         <span className="text-gray-500">({sport.pivot.skill_level})</span>
                                     )}
-                                </span>
+                    </span>
                             ))}
                         </div>
                     )}
@@ -620,7 +636,7 @@ export default function GroupsShow({
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-gray-600 mt-1">
                                                 <MapPin className="w-3 h-3" />
-                                                <span>{event.location}</span>
+                                                <span>{event.city?.name}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-gray-600 mt-1">
                                                 <Users className="w-3 h-3" />
@@ -703,10 +719,10 @@ export default function GroupsShow({
                                     {group.is_private ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
                                     <span>{group.is_private ? 'Privāta grupa' : 'Publiska grupa'}</span>
                                 </div>
-                                {group.location && (
+                                {group.city?.name && (
                                     <div className="flex items-center gap-2 text-gray-600">
                                         <MapPin className="w-4 h-4" />
-                                        <span>{group.location}</span>
+                                        <span>{group.city.name}</span>
                                     </div>
                                 )}
                             </div>

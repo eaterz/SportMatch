@@ -70,7 +70,7 @@ class ChatController extends Controller
                     'is_sender' => $lastMessage->sender_id === $user->id
                 ] : null,
                 'unread_count' => $unreadCount,
-                'is_online' => false // You can implement this with Pusher presence channels
+                'is_online' => false
             ];
         })
             ->sortByDesc(function($friend) {

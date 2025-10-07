@@ -175,4 +175,11 @@ class Group extends Model
             ? asset('storage/' . $this->cover_photo)
             : null;
     }
+
+    // Pilsēta
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
 }

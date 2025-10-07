@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Calendar, Smartphone, Check, AlertCircle, Clock, ExternalLink } from 'lucide-react';
+import { Calendar, Smartphone, Check, Clock, ExternalLink } from 'lucide-react';
 
 interface CalendarButtonProps {
     event: {
         id: number;
         title: string;
         description?: string;
-        location: string;
+        city?: {
+            id: number;
+            name: string;
+            region?: string;
+        };
         event_date: string;
         duration?: string;
     };
@@ -35,6 +39,18 @@ export function AddToCalendarButton({ event, group }: CalendarButtonProps) {
         return { startDate, endDate };
     };
 
+    // Helper to format the city name for calendar export
+    const getEventCity = () => {
+        if (event.city) {
+            if (event.city.region) {
+                return `${event.city.name}, ${event.city.region}`;
+            }
+            return event.city.name;
+        }
+        return 'Nezināma vieta'; // Fallback if city missing
+    };
+
+
     // Generate Google Calendar URL
     const generateGoogleCalendarUrl = () => {
         const { startDate, endDate } = formatDateForCalendar();
@@ -50,7 +66,7 @@ export function AddToCalendarButton({ event, group }: CalendarButtonProps) {
             text: event.title,
             dates: `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`,
             details: details,
-            location: event.location,
+            location: getEventCity(),
             ctz: 'Europe/Riga'
         });
 
@@ -73,7 +89,7 @@ export function AddToCalendarButton({ event, group }: CalendarButtonProps) {
             subject: event.title,
             startdt: formatOutlookDate(startDate),
             enddt: formatOutlookDate(endDate),
-            location: event.location,
+            location: getEventCity(),
             body: body
         });
 
@@ -96,7 +112,7 @@ export function AddToCalendarButton({ event, group }: CalendarButtonProps) {
             st: formatYahooDate(startDate),
             et: formatYahooDate(endDate),
             desc: desc,
-            in_loc: event.location
+            in_loc: getEventCity()
         });
 
         return `https://calendar.yahoo.com/?${params.toString()}`;
@@ -131,7 +147,7 @@ DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
 SUMMARY:${event.title}
 DESCRIPTION:${description.replace(/\n/g, '\\n')}
-LOCATION:${event.location}
+LOCATION:${getEventCity()}
 STATUS:CONFIRMED
 BEGIN:VALARM
 TRIGGER:-PT15M
@@ -225,7 +241,7 @@ END:VCALENDAR`;
                 const { startDate, endDate } = formatDateForCalendar();
                 const eventDetails = {
                     title: `📅 ${event.title}`,
-                    text: `${event.title}\n📍 ${event.location}\n📅 ${new Date(event.event_date).toLocaleString('lv-LV')}\n\nGrupa: ${group.name}`,
+                    text: `${event.title}\n📍 ${getEventCity()}\n📅 ${new Date(event.event_date).toLocaleString('lv-LV')}\n\nGrupa: ${group.name}`,
                     url: window.location.href
                 };
 

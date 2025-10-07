@@ -156,5 +156,12 @@ class GroupEvent extends Model
         return true;
     }
 
+    // Pilsēta
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\City::class);
+    }
+
+
 
 }

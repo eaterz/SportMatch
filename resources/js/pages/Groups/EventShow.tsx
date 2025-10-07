@@ -25,7 +25,11 @@ interface Event {
     id: number;
     title: string;
     description?: string;
-    location: string;
+    city?: {
+        id: number;
+        name: string;
+        region?: string;
+    };
     event_date: string;
     duration?: string;
     max_participants?: number;
@@ -178,7 +182,13 @@ export default function EventShow({ user, group, event, participants }: Props) {
 
                                 <div className="flex items-center gap-3">
                                     <MapPin className="w-5 h-5 text-gray-400" />
-                                    <span>{event.location}</span>
+                                    {event.city ? (
+                                        <div className="font-medium text-gray-800">
+                                            {event.city.name}
+                                        </div>
+                                    ) : (
+                                        <div className="text-gray-500 text-sm">Nav norādīta pilsēta</div>
+                                    )}
                                 </div>
 
                                 {event.duration && (
@@ -295,7 +305,7 @@ export default function EventShow({ user, group, event, participants }: Props) {
                                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                                 <UserPlus className="w-8 h-8 text-gray-600" />
                                             </div>
-                                            <p className="font-medium text-gray-900 mb-4">Pievienies pasākumam</p>
+                                            <p className="font-medium text-gray-900 mb-4">Pievienoies pasākumam</p>
                                             {isEventFull ? (
                                                 <button
                                                     disabled
@@ -418,7 +428,7 @@ export default function EventShow({ user, group, event, participants }: Props) {
                                                 href={`/groups/${group.id}/events/${event.id}/feedback/create`}
                                                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center text-sm block"
                                             >
-                                                Būdi pirmais - atstāj atsauksmi!
+                                                Būsi pirmais - atstāj atsauksmi!
                                             </Link>
                                         )}
                                     </div>

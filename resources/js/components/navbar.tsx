@@ -25,7 +25,7 @@ export default function Navbar({ user }: Props) {
     };
 
     return (
-        <nav className="bg-white shadow-sm md:mx-30 md:rounded-b-2xl">
+        <nav className="bg-white shadow-sm md:mx-30 md:rounded-b-2xl relative z-50">
             <div className="px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -36,8 +36,6 @@ export default function Navbar({ user }: Props) {
                         <span className="text-xl font-bold text-gray-900">SportMatch</span>
                     </Link>
 
-
-
                     {/* Desktop Navigation Links */}
                     <div className="hidden md:flex items-center space-x-6">
                         <Link
@@ -47,7 +45,6 @@ export default function Navbar({ user }: Props) {
                             <Search className="w-4 h-4" />
                             <span>Meklēt grupas</span>
                         </Link>
-
 
                         <Link
                             href="/partners"
@@ -137,12 +134,12 @@ export default function Navbar({ user }: Props) {
 
                     {/* Mobile menu button */}
                     <div className="md:hidden flex items-center space-x-3">
-                        {/* Mobile profile avatar */}
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-600">
-                                {user.name.charAt(0)}{user.lastname?.charAt(0) || ''}
-                            </span>
-                        </div>
+
+                        <NotificationBell
+                            userId={user.id}
+                            pusherKey={config.pusherKey}
+                            pusherCluster={config.pusherCluster}
+                        />
 
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -159,7 +156,7 @@ export default function Navbar({ user }: Props) {
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
-                    <div className="md:hidden border-t border-gray-200 py-4">
+                    <div className="md:hidden border-t border-gray-200 py-4 relative z-50 bg-white">
                         {/* User info section */}
                         <div className="px-4 py-3 border-b border-gray-100 mb-4">
                             <div className="font-medium text-gray-900">

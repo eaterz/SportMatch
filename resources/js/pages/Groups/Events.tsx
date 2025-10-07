@@ -18,7 +18,11 @@ interface Event {
     id: number;
     title: string;
     description?: string;
-    location: string;
+    city?: {
+        id: number;
+        name: string;
+        region?: string;
+    };
     event_date: string;
     duration?: string;
     max_participants?: number;
@@ -81,119 +85,123 @@ export default function Events({ user, group, upcomingEvents, pastEvents, is_adm
         <div className="min-h-screen bg-gray-50">
             <Head title={`Pasākumi - ${group.name} - SportMatch`} />
 
-            <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <Link
                             href={route('groups.show', group.id)}
-                            className="p-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                            className="p-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Pasākumi</h1>
-                            <p className="text-gray-600">{group.name}</p>
+                        <div className="min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Pasākumi</h1>
+                            <p className="text-sm sm:text-base text-gray-600 truncate">{group.name}</p>
                         </div>
                     </div>
 
                     <Link
                         href={route('groups.events.create', group.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                        className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors w-full sm:w-auto"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span>Izveidot pasākumu</span>
+                        <Plus className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm sm:text-base">Izveidot pasākumu</span>
                     </Link>
                 </div>
 
                 {/* Upcoming Events */}
-                <div className="mb-12">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                <div className="mb-10 sm:mb-12">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
                         Nākamie pasākumi ({upcomingEvents.length})
                     </h2>
 
                     {upcomingEvents.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                             {upcomingEvents.map(event => (
-                                <div key={event.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                <div key={event.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                                     {/* Event header */}
-                                    <div className="p-4 border-b border-gray-100">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <h3 className="font-semibold text-gray-900 line-clamp-2">
+                                    <div className="p-3 sm:p-4 border-b border-gray-100">
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 line-clamp-2">
                                                 {event.title}
                                             </h3>
-                                            <div className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                            <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
                                                 {getRelativeDate(event.event_date)}
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-                                            <Calendar className="w-3 h-3" />
-                                            <span>{formatDate(event.event_date)}</span>
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2">
+                                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                                            <span className="line-clamp-1">{formatDate(event.event_date)}</span>
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-                                            <MapPin className="w-3 h-3" />
-                                            <span>{event.location}</span>
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                                            {event.city ? (
+                                                <div className="font-medium text-gray-800 truncate">
+                                                    {event.city.name}
+                                                </div>
+                                            ) : (
+                                                <div className="text-gray-500 text-xs sm:text-sm">Nav norādīta pilsēta</div>
+                                            )}
                                         </div>
 
                                         {event.description && (
-                                            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2">
                                                 {event.description}
                                             </p>
                                         )}
                                     </div>
 
                                     {/* Event details */}
-                                    <div className="p-4">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="w-4 h-4" />
-                                                    <span>{event.confirmed_participants_count}</span>
-                                                    {event.max_participants && (
-                                                        <span>/ {event.max_participants}</span>
-                                                    )}
-                                                </div>
-                                                {event.price && event.price > 0 && (
-                                                    <div className="flex items-center gap-1">
-                                                        <DollarSign className="w-4 h-4" />
-                                                        <span>{event.price}€</span>
-                                                    </div>
-                                                )}
-                                                {event.duration && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Clock className="w-4 h-4" />
-                                                        <span>{event.duration}</span>
-                                                    </div>
+                                    <div className="p-3 sm:p-4 flex-grow flex flex-col">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                                            <div className="flex items-center gap-1">
+                                                <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                <span>{event.confirmed_participants_count}</span>
+                                                {event.max_participants && (
+                                                    <span className="whitespace-nowrap">/ {event.max_participants}</span>
                                                 )}
                                             </div>
+                                            {event.price && event.price > 0 && (
+                                                <div className="flex items-center gap-1">
+                                                    <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                    <span>{event.price}€</span>
+                                                </div>
+                                            )}
+                                            {event.duration && (
+                                                <div className="flex items-center gap-1">
+                                                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                    <span>{event.duration}</span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-                                            <User className="w-3 h-3" />
-                                            <span>Izveidoja {event.creator.name} {event.creator.lastname}</span>
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-3 sm:mb-4">
+                                            <User className="w-3 h-3 flex-shrink-0" />
+                                            <span className="truncate">Izveidoja {event.creator.name} {event.creator.lastname}</span>
                                         </div>
 
                                         {/* Action buttons */}
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 mt-auto">
                                             <Link
                                                 href={route('groups.events.show', [group.id, event.id])}
-                                                className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center text-sm"
+                                                className="flex-1 px-2 sm:px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center text-xs sm:text-sm"
                                             >
                                                 Detaļas
                                             </Link>
                                             {event.is_participating ? (
                                                 <button
                                                     disabled
-                                                    className="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm cursor-not-allowed"
+                                                    className="flex-1 px-2 sm:px-3 py-2 bg-green-100 text-green-700 rounded-lg text-xs sm:text-sm cursor-not-allowed"
                                                 >
                                                     Piedalos
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={() => joinEvent(event.id)}
-                                                    className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm"
+                                                    className="flex-1 px-2 sm:px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-xs sm:text-sm"
                                                 >
                                                     Pievienoties
                                                 </button>
@@ -204,13 +212,13 @@ export default function Events({ user, group, upcomingEvents, pastEvents, is_adm
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-                            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Nav plānotu pasākumu</h3>
-                            <p className="text-gray-500 mb-6">Esi pirmais, kas izveido kādu interesantu pasākumu!</p>
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 sm:p-12 text-center">
+                            <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-1 sm:mb-2">Nav plānotu pasākumu</h3>
+                            <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Esi pirmais, kas izveido kādu interesantu pasākumu!</p>
                             <Link
                                 href={route('groups.events.create', group.id)}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors w-full sm:w-auto text-sm sm:text-base"
                             >
                                 <Plus className="w-4 h-4" />
                                 <span>Izveidot pasākumu</span>
@@ -222,34 +230,40 @@ export default function Events({ user, group, upcomingEvents, pastEvents, is_adm
                 {/* Past Events */}
                 {pastEvents.length > 0 && (
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
                             Iepriekšējie pasākumi
                         </h2>
 
-                        <div className="space-y-4">
+                        <div className="space-y-2 sm:space-y-4">
                             {pastEvents.map(event => (
-                                <div key={event.id} className="bg-white border border-gray-200 rounded-lg p-4 opacity-75">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <h3 className="font-medium text-gray-900 mb-1">{event.title}</h3>
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <div key={event.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 opacity-75">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-medium text-sm sm:text-base text-gray-900 mb-2 truncate">{event.title}</h3>
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                                                 <div className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
+                                                    <Calendar className="w-3 h-3 flex-shrink-0" />
                                                     <span>{formatDateShort(event.event_date)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <MapPin className="w-3 h-3" />
-                                                    <span>{event.location}</span>
+                                                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                                                    {event.city ? (
+                                                        <div className="font-medium text-gray-800 truncate">
+                                                            {event.city.name}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs sm:text-sm">Nav norādīta pilsēta</div>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <Users className="w-3 h-3" />
+                                                    <Users className="w-3 h-3 flex-shrink-0" />
                                                     <span>{event.confirmed_participants_count} dalībnieki</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <Link
                                             href={route('groups.events.show', [group.id, event.id])}
-                                            className="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                                            className="px-3 py-1 text-xs sm:text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors w-full sm:w-auto text-center"
                                         >
                                             Skatīt
                                         </Link>

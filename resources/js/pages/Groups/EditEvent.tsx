@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign, Search } from 'lucide-react';
 
 interface User {
     id: number;
@@ -14,11 +14,17 @@ interface Group {
     is_admin: boolean;
 }
 
+interface City {
+    id: number;
+    name: string;
+    region: string;
+}
+
 interface Event {
     id: number;
     title: string;
     description?: string;
-    location: string;
+    city_id?: number;
     event_date: string;
     duration?: string;
     max_participants?: number;
@@ -32,13 +38,17 @@ interface Props {
     user: User;
     group: Group;
     event: Event;
+    cities: City[];
 }
 
-export default function EditEvent({ user, group, event }: Props) {
+export default function EditEvent({ user, group, event, cities }: Props) {
+    const [searchCity, setSearchCity] = useState('');
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
+
     const { data, setData, put, processing, errors } = useForm({
         title: event.title || '',
         description: event.description || '',
-        location: event.location || '',
+        city_id: event.city_id || null as number | null,
         event_date: event.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : '',
         duration: event.duration || '',
         max_participants: event.max_participants?.toString() || '',
@@ -46,6 +56,13 @@ export default function EditEvent({ user, group, event }: Props) {
         is_recurring: event.is_recurring || false,
         recurring_pattern: event.recurring_pattern || ''
     });
+
+    const filteredCities = cities.filter(city =>
+        city.name.toLowerCase().includes(searchCity.toLowerCase()) ||
+        city.region.toLowerCase().includes(searchCity.toLowerCase())
+    );
+
+    const selectedCity = cities.find(c => c.id === data.city_id);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -127,23 +144,66 @@ export default function EditEvent({ user, group, event }: Props) {
                             )}
                         </div>
 
-                        {/* Location */}
+                        {/* City */}
                         <div>
-                            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                                <MapPin className="w-4 h-4 inline mr-1" />
-                                Atrašanās vieta *
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <MapPin className="inline w-4 h-4 mr-1" />
+                                Pilsēta *
                             </label>
-                            <input
-                                type="text"
-                                id="location"
-                                value={data.location}
-                                onChange={e => setData('location', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
-                                placeholder="Pilsēta, adrese vai vietas nosaukums"
-                                required
-                            />
-                            {errors.location && (
-                                <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+                            <div className="relative">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={selectedCity ? selectedCity.name : searchCity}
+                                        onChange={(e) => {
+                                            setSearchCity(e.target.value);
+                                            setShowCityDropdown(true);
+                                            if (!e.target.value) {
+                                                setData('city_id', null);
+                                            }
+                                        }}
+                                        onFocus={() => setShowCityDropdown(true)}
+                                        placeholder="Meklēt pilsētu..."
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                    />
+                                </div>
+
+                                {showCityDropdown && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-10"
+                                            onClick={() => setShowCityDropdown(false)}
+                                        />
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                            {filteredCities.length > 0 ? (
+                                                filteredCities.map(city => (
+                                                    <div
+                                                        key={city.id}
+                                                        onClick={() => {
+                                                            setData('city_id', city.id);
+                                                            setSearchCity(city.name);
+                                                            setShowCityDropdown(false);
+                                                        }}
+                                                        className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                                            data.city_id === city.id ? 'bg-blue-50' : ''
+                                                        }`}
+                                                    >
+                                                        <div className="font-medium text-gray-900">{city.name}</div>
+                                                        <div className="text-sm text-gray-500">{city.region} reģions</div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-2 text-gray-500 text-sm">
+                                                    Nav atrasta pilsēta
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            {errors.city_id && (
+                                <p className="mt-1 text-sm text-red-600">{errors.city_id}</p>
                             )}
                         </div>
 

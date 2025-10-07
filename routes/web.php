@@ -106,14 +106,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
 
-    //Groups
-    Route::controller(GroupsController::class)
-        ->prefix('groups')
-        ->name('groups.')
-        ->group(function () {
-            Route::get('/', 'search')->name('search');
-            Route::post('/create', 'create')->name('create');
-        });
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

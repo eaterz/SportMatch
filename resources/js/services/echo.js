@@ -4,6 +4,8 @@ class EchoService {
     constructor() {
         this.echo = null;
         this.channels = new Map();
+        this.onlineUsers = new Set();
+        this.presenceChannel = null;
     }
 
     async initialize(pusherKey, pusherCluster = 'mt1') {
@@ -74,6 +76,79 @@ class EchoService {
 
         this.channels.set(channelName, channel);
         return channel;
+    }
+
+    // Presence channel for online status
+    joinPresenceChannel(callback) {
+        if (!this.echo) {
+            console.error('Echo not initialized');
+            return;
+        }
+
+        // Don't join if already joined
+        if (this.presenceChannel) {
+            console.log('Already joined presence channel');
+            return;
+        }
+
+        try {
+            this.presenceChannel = this.echo.join('online')
+                .here((users) => {
+                    // Users currently online when you join
+                    console.log('Users currently online:', users);
+                    this.onlineUsers = new Set(users.map(u => u.id));
+                    if (callback) {
+                        callback(Array.from(this.onlineUsers));
+                    }
+                })
+                .joining((user) => {
+                    // User just came online
+                    console.log('User joining:', user);
+                    this.onlineUsers.add(user.id);
+                    if (callback) {
+                        callback(Array.from(this.onlineUsers));
+                    }
+                })
+                .leaving((user) => {
+                    // User just went offline
+                    console.log('User leaving:', user);
+                    this.onlineUsers.delete(user.id);
+                    if (callback) {
+                        callback(Array.from(this.onlineUsers));
+                    }
+                })
+                .error((error) => {
+                    console.error('Presence channel error:', error);
+                });
+
+            console.log('Joined presence channel');
+        } catch (error) {
+            console.error('Failed to join presence channel:', error);
+        }
+    }
+
+    // Leave presence channel
+    leavePresenceChannel() {
+        if (this.presenceChannel) {
+            try {
+                this.echo.leave('online');
+                this.presenceChannel = null;
+                this.onlineUsers.clear();
+                console.log('Left presence channel');
+            } catch (error) {
+                console.error('Error leaving presence channel:', error);
+            }
+        }
+    }
+
+    // Get current online users
+    getOnlineUsers() {
+        return Array.from(this.onlineUsers);
+    }
+
+    // Check if user is online
+    isUserOnline(userId) {
+        return this.onlineUsers.has(userId);
     }
 
     // Group methods
@@ -148,7 +223,10 @@ class EchoService {
     disconnect() {
         if (this.echo) {
             try {
-                // Leave all channels
+                // Leave presence channel first
+                this.leavePresenceChannel();
+
+                // Leave all other channels
                 this.channels.forEach((channel, channelName) => {
                     this.echo.leaveChannel(channelName);
                 });
