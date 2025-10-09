@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventFeedbackController;
@@ -20,6 +21,15 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
+// Google OAuth Routes
+Route::controller(GoogleAuthController::class)
+    ->prefix('auth/google')
+    ->name('google.')
+    ->group(function () {
+        Route::get('/redirect', 'redirect')->name('redirect');
+        Route::get('/callback', 'callback')->name('callback');
+    });
+
 
 //Profile Setup
 Route::middleware('auth')
@@ -35,9 +45,15 @@ Route::middleware('auth')
 
         Route::get('/step-3', 'step3')->name('step3');
         Route::post('/step-3', 'storeStep3')->name('step3.store');
-
+        // NEW: Photo upload step
         Route::get('/step-4', 'step4')->name('step4');
         Route::post('/step-4', 'storeStep4')->name('step4.store');
+        Route::post('/photo/upload', 'uploadSetupPhoto')->name('photo.upload');
+        Route::delete('/photo/{photo}', 'deleteSetupPhoto')->name('photo.delete');
+        Route::post('/photo/{photo}/main', 'setMainSetupPhoto')->name('photo.main');
+
+        Route::get('/step-5', 'step5')->name('step5');
+        Route::post('/step-5', 'storeStep5')->name('step5.store');
     });
 
 //Authenticated Routes
@@ -179,6 +195,8 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
 });
+
+
 
 
 

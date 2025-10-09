@@ -4,6 +4,11 @@ import { AdminHeader } from '@/components/Admin/AdminHeader';
 import { StatusBadge } from '@/components/Admin/StatusBadge';
 import { User, Camera, CheckCircle, XCircle, Clock, ArrowLeft, Eye, Calendar, FileText } from 'lucide-react';
 
+interface City {
+    id: number;
+    name: string;
+    region: string;
+}
 interface ShowProps {
     verificationRequest: any;
     photos: {
@@ -13,6 +18,7 @@ interface ShowProps {
     };
     previousAttempts: any[];
     user: any;
+    cities: City[];
 }
 
 export default function Show({ verificationRequest, photos, previousAttempts, user }: ShowProps) {
@@ -296,7 +302,12 @@ export default function Show({ verificationRequest, photos, previousAttempts, us
                                             </div>
                                             <div>
                                                 <span className="text-gray-600">Pilsēta:</span>
-                                                <p className="font-medium">{user.profile.city || 'Nav norādīta'}</p>
+                                                <p className="font-medium">
+                                                    {user.profile?.city?.name || 'Nav norādīta'}
+                                                </p>
+                                                {user.profile?.city?.region && (
+                                                    <p className="text-xs text-gray-500">{user.profile.city.region} reģions</p>
+                                                )}
                                             </div>
                                             <div>
                                                 <span className="text-gray-600">Reģistrēts:</span>
@@ -304,8 +315,8 @@ export default function Show({ verificationRequest, photos, previousAttempts, us
                                             </div>
                                             <div>
                                                 <span className="text-gray-600">Verificēts:</span>
-                                                <p className={`font-medium ${user.profile.is_verified ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {user.profile.is_verified ? 'Jā' : 'Nē'}
+                                                <p className={`font-medium ${user.profile?.is_verified ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {user.profile?.is_verified ? 'Jā' : 'Nē'}
                                                 </p>
                                             </div>
                                         </div>

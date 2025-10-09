@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -15,9 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
-
 
     protected $fillable = [
         'name',
@@ -27,14 +24,10 @@ class User extends Authenticatable
         'is_admin',
     ];
 
-
-
     protected $hidden = [
         'password',
         'remember_token',
     ];
-
-
 
     protected function casts(): array
     {
@@ -44,7 +37,6 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
-
 
     public function profile(): HasOne
     {
@@ -84,19 +76,33 @@ class User extends Authenticatable
         return $this->hasOne(PhotoVerificationRequest::class)->latest();
     }
 
+    /**
+     * Check if user has complete profile (including at least one photo)
+     */
     public function getHasCompleteProfileAttribute(): bool
     {
-        return $this->profile &&
-            $this->profile->is_complete &&
-            $this->sports()->count() > 0;
-    }
+        // Check if profile exists and is complete
+        if (!$this->profile || !$this->profile->is_complete) {
+            return false;
+        }
 
+        // Check if user has at least one sport
+        if ($this->sports()->count() === 0) {
+            return false;
+        }
+
+        // IMPORTANT: Check if user has at least one photo
+        if ($this->profile->photos()->count() === 0) {
+            return false;
+        }
+
+        return true;
+    }
 
     public function getAgeAttribute(): ?int
     {
         return $this->profile?->age;
     }
-
 
     public function getAvailabilityForDay(string $day): ?AvailabilitySchedule
     {
@@ -133,6 +139,7 @@ class User extends Authenticatable
 
         return $weekly;
     }
+
     public function sentFriendships(): HasMany
     {
         return $this->hasMany(Friendship::class, 'sender_id');
@@ -169,14 +176,12 @@ class User extends Authenticatable
 
     public function friends()
     {
-
         $senderFriendIds = $this->friendsAsSender()->pluck('users.id');
         $receiverFriendIds = $this->friendsAsReceiver()->pluck('users.id');
         $allFriendIds = $senderFriendIds->merge($receiverFriendIds)->unique();
 
         return User::whereIn('id', $allFriendIds);
     }
-
 
     public function isFriendWith(User $user): bool
     {
@@ -190,8 +195,6 @@ class User extends Authenticatable
             ->exists();
     }
 
-
-
     public function sentMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'sender_id');
@@ -201,7 +204,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(Message::class, 'receiver_id');
     }
-
 
     public function sendFriendRequest(User $user): Friendship
     {
@@ -256,12 +258,10 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
-
     public function getUnreadNotificationsCountAttribute(): int
     {
         return $this->notifications()->unread()->count();
     }
-
 
     public function getRecentNotifications(int $limit = 10)
     {

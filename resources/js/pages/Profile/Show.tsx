@@ -245,13 +245,6 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                             )}
                                         </div>
 
-                                        <input
-                                            type="text"
-                                            value={infoData.phone}
-                                            onChange={e => setInfoData('phone', e.target.value)}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Telefona numurs"
-                                        />
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={saveInfo}
@@ -343,7 +336,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                             <button
                                                 onClick={saveBio}
                                                 disabled={processingBio}
-                                                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all text-sm"
+                                                className="px-4 py-2 bg-black text-white rounded-xl hover:shadow-lg transition-all text-sm"
                                             >
                                                 Saglabāt
                                             </button>
@@ -547,7 +540,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
 
                                     <button
                                         onClick={() => router.get('/verification/start')}
-                                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium hover:shadow-lg transition-all transform hover:scale-[1.02] text-sm"
+                                        className="w-full px-4 py-3 bg-black hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium hover:shadow-lg transition-all transform hover:scale-[1.02] text-sm"
                                     >
                                         Sākt verifikāciju
                                     </button>

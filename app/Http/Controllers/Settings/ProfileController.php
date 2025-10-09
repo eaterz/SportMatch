@@ -20,25 +20,40 @@ class ProfileController extends Controller
     {
         return Inertia::render('settings/profile', [
             'user' => Auth::user(),
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => $request->session()->get('status'),
+            'mustVerifyEmail' => true,
+            'status' => session('status'),
+            'isOAuthUser' => Auth::user()->oauth_provider !== null,
         ]);
     }
 
     /**
      * Update the user's profile settings.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'lastname' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users,email,' . $user->id
+            ],
+        ]);
+
+
+        // Prevent OAuth users from changing email
+        if ($user->oauth_provider) {
+            unset($validated['email']);
         }
 
-        $request->user()->save();
+        $user->update($validated);
 
-        return to_route('profile.edit');
+        return back();
     }
 
     /**

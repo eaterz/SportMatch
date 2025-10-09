@@ -71,7 +71,6 @@ export default function GroupsCreate({ sports = [], cities = [] }: Props) {
             forceFormData: true,
         });
     };
-
     const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {

@@ -23,17 +23,26 @@ class PasswordController extends Controller
     /**
      * Update the user's password.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request)
     {
+        $user = $request->user();
+
+        // Prevent OAuth users from changing password
+        if ($user->oauth_provider) {
+            return back()->withErrors([
+                'current_password' => 'Cannot change password for OAuth accounts.'
+            ]);
+        }
+
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back();
+        return back()->with('success', 'Password updated successfully');
     }
 }

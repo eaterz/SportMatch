@@ -69,7 +69,7 @@ class VerificationReviewController extends Controller
      */
     public function show(PhotoVerificationRequest $request)
     {
-        $request->load(['user.profile', 'reviewer']);
+        $request->load(['user.profile.city', 'reviewer']);
 
         // Get user's previous verification attempts
         $previousAttempts = PhotoVerificationRequest::where('user_id', $request->user_id)
@@ -91,11 +91,15 @@ class VerificationReviewController extends Controller
                 : null
         ];
 
+        $cities = \App\Models\City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
+
         return Inertia::render('Admin/Verification/Show', [
             'verificationRequest' => $request,
             'photos' => $photos,
             'previousAttempts' => $previousAttempts,
-            'user' => $request->user
+            'user' => $request->user,
+            'cities' => $cities
+
         ]);
     }
 

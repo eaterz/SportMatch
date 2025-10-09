@@ -142,7 +142,6 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'phone' => 'nullable|string|max:20',
             'city_id' => 'required|exists:cities,id',
             'bio' => 'nullable|string|max:500'
         ]);
@@ -153,7 +152,7 @@ class ProfileController extends Controller
             return back()->with('error', 'Profils nav atrasts');
         }
 
-        $user->profile->update($request->only(['phone', 'city_id', 'bio']));
+        $user->profile->update($request->only(['city_id', 'bio']));
 
         return back()->with('success', 'Profils atjaunināts');
     }

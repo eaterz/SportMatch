@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class UserProfile extends Model
 {
@@ -28,7 +29,7 @@ class UserProfile extends Model
     protected $casts = [
         'birth_date' => 'date',
         'is_verified' => 'boolean',
-        'verified_at' => 'datetime'
+        'verified_at' => 'datetime',
     ];
 
     protected $appends = ['age', 'main_photo', 'verification_status', 'verification_submitted_at', 'verification_rejected_reason'];
@@ -81,7 +82,8 @@ class UserProfile extends Model
     {
         return !is_null($this->birth_date)
             && !is_null($this->gender)
-            && !is_null($this->city_id);
+            && !is_null($this->city_id)
+            && !is_null($this->phone);
     }
 
     public function setPhoneAttribute($value)
@@ -90,6 +92,7 @@ class UserProfile extends Model
             $digits = preg_replace('/\D/', '', $value);
             $digits = preg_replace('/^371/', '', $digits);
             $this->attributes['phone'] = '+371' . $digits;
+
         } else {
             $this->attributes['phone'] = null;
         }
@@ -174,10 +177,10 @@ class UserProfile extends Model
         ];
     }
 
+
     /**
      * Calculate distance to another user's city
      */
-
     public function distanceTo(UserProfile $otherProfile): ?float
     {
         if (!$this->city || !$otherProfile->city) {

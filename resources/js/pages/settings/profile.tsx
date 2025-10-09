@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Form, Link } from '@inertiajs/react';
-import { User, Mail, Shield, Trash2, Save, AlertTriangle } from 'lucide-react';
+import { User, Mail, Shield, Trash2, Save, AlertTriangle, Info, Lock } from 'lucide-react';
 
 import Navbar from '@/components/navbar';
 import InputError from '@/components/input-error';
@@ -11,6 +11,7 @@ interface User {
     lastname?: string;
     email: string;
     email_verified_at?: string;
+    oauth_provider?: string | null;
 }
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 
 export default function ProfileSettings({ user, mustVerifyEmail = false, status }: Props) {
     const [activeTab, setActiveTab] = useState('profile');
+    const isOAuthUser = user.oauth_provider !== null;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -87,7 +89,7 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
 
                                 <Form
                                     method="patch"
-                                    action={route('profile.update')}
+                                    action={route('profile.settings.update')}
                                     className="space-y-6"
                                 >
                                     {({ processing, recentlySuccessful, errors }) => (
@@ -132,19 +134,37 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                                                     <Mail className="w-4 h-4 inline mr-2" />
                                                     E-pasta adrese
                                                 </label>
-                                                <input
-                                                    id="email"
-                                                    type="email"
-                                                    name="email"
-                                                    defaultValue={user.email}
-                                                    required
-                                                    autoComplete="email"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        id="email"
+                                                        type="email"
+                                                        name="email"
+                                                        defaultValue={user.email}
+                                                        required
+                                                        autoComplete="email"
+                                                        disabled={isOAuthUser}
+                                                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none ${
+                                                            isOAuthUser
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                                                                : 'border-gray-300 focus:border-gray-400'
+                                                        }`}
+                                                    />
+                                                    {isOAuthUser && (
+                                                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                                    )}
+                                                </div>
+
+                                                {isOAuthUser && (
+                                                    <p className="mt-2 text-sm text-gray-500 flex items-center">
+                                                        <Info className="w-4 h-4 mr-1" />
+                                                        E-pasts nevar tikt mainīts, jo esi pieslēdzies ar Google
+                                                    </p>
+                                                )}
+
                                                 <InputError message={errors.email} />
 
                                                 {/* Email Verification */}
-                                                {mustVerifyEmail && !user.email_verified_at && (
+                                                {mustVerifyEmail && !user.email_verified_at && !isOAuthUser && (
                                                     <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                                         <div className="flex items-center">
                                                             <AlertTriangle className="w-4 h-4 text-yellow-600 mr-2" />
@@ -202,7 +222,7 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
 
                                 <Form
                                     method="put"
-                                    action={route('password.update')}
+                                    action={route('password.settings.update')}
                                     className="space-y-6"
                                 >
                                     {({ processing, recentlySuccessful, errors }) => (
@@ -211,13 +231,24 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                                                 <label htmlFor="current_password" className="block text-sm font-medium text-gray-700 mb-2">
                                                     Pašreizējā parole
                                                 </label>
-                                                <input
-                                                    id="current_password"
-                                                    type="password"
-                                                    name="current_password"
-                                                    autoComplete="current-password"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        id="current_password"
+                                                        type="password"
+                                                        name="current_password"
+                                                        autoComplete="current-password"
+                                                        disabled={isOAuthUser}
+                                                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none ${
+                                                            isOAuthUser
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                                                                : 'border-gray-300 focus:border-gray-400'
+                                                        }`}
+                                                        placeholder={isOAuthUser ? "Nav pieejams Google kontiem" : ""}
+                                                    />
+                                                    {isOAuthUser && (
+                                                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                                    )}
+                                                </div>
                                                 <InputError message={errors.current_password} />
                                             </div>
 
@@ -225,13 +256,24 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                                                     Jaunā parole
                                                 </label>
-                                                <input
-                                                    id="password"
-                                                    type="password"
-                                                    name="password"
-                                                    autoComplete="new-password"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        id="password"
+                                                        type="password"
+                                                        name="password"
+                                                        autoComplete="new-password"
+                                                        disabled={isOAuthUser}
+                                                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none ${
+                                                            isOAuthUser
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                                                                : 'border-gray-300 focus:border-gray-400'
+                                                        }`}
+                                                        placeholder={isOAuthUser ? "Nav pieejams Google kontiem" : ""}
+                                                    />
+                                                    {isOAuthUser && (
+                                                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                                    )}
+                                                </div>
                                                 <InputError message={errors.password} />
                                             </div>
 
@@ -239,21 +281,41 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                                                 <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700 mb-2">
                                                     Apstiprini jauno paroli
                                                 </label>
-                                                <input
-                                                    id="password_confirmation"
-                                                    type="password"
-                                                    name="password_confirmation"
-                                                    autoComplete="new-password"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        id="password_confirmation"
+                                                        type="password"
+                                                        name="password_confirmation"
+                                                        autoComplete="new-password"
+                                                        disabled={isOAuthUser}
+                                                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none ${
+                                                            isOAuthUser
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                                                                : 'border-gray-300 focus:border-gray-400'
+                                                        }`}
+                                                        placeholder={isOAuthUser ? "Nav pieejams Google kontiem" : ""}
+                                                    />
+                                                    {isOAuthUser && (
+                                                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                                    )}
+                                                </div>
                                                 <InputError message={errors.password_confirmation} />
                                             </div>
+
+                                            {isOAuthUser && (
+                                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                    <p className="text-sm text-blue-900 flex items-center">
+                                                        <Info className="w-4 h-4 mr-2" />
+                                                        Paroles maiņa nav pieejama Google kontiem. Tava drošība tiek pārvaldīta caur Google.
+                                                    </p>
+                                                </div>
+                                            )}
 
                                             <div className="flex items-center space-x-4">
                                                 <button
                                                     type="submit"
-                                                    disabled={processing}
-                                                    className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 flex items-center space-x-2"
+                                                    disabled={processing || isOAuthUser}
+                                                    className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
                                                 >
                                                     <Shield className="w-4 h-4" />
                                                     <span>{processing ? 'Atjauno...' : 'Atjaunot paroli'}</span>
