@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Trophy, Camera, ChevronRight, ChevronLeft, Upload, Trash2, Star, Check, X } from 'lucide-react';
-
+import axios from 'axios';
 interface Photo {
     id: number;
     photo_url: string;
@@ -45,34 +45,44 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
         const formData = new FormData();
         formData.append('photo', file);
 
-        router.post('/profile/setup/photo/upload', formData, {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
+        try {
+            await axios.post(route('profile.setup.photo.upload'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
                 }
-                setIsUploading(false);
-            },
-            onError: () => {
-                setUploadError('Kļūda augšupielādējot foto');
-                setIsUploading(false);
-            }
-        });
-    };
-
-    const deletePhoto = (photoId: number) => {
-        if (confirm('Vai tiešām vēlies dzēst šo foto?')) {
-            router.delete(`/profile/setup/photo/${photoId}`, {
-                preserveScroll: true
             });
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
+            router.reload({ only: ['photos'] });
+            setIsUploading(false);
+
+        } catch (error) {
+            setUploadError('Kļūda augšupielādējot foto');
+            setIsUploading(false);
         }
     };
 
-    const setMainPhoto = (photoId: number) => {
-        router.post(`/profile/setup/photo/${photoId}/main`, {}, {
-            preserveScroll: true
-        });
+    const setMainPhoto = async (photoId: number) => {
+        try {
+            await axios.post(route('profile.setup.photo.main', photoId));
+            router.reload({ only: ['photos'] });
+        } catch (error) {
+            setUploadError('Kļūda iestatot galveno foto');
+        }
+    };
+
+    const deletePhoto = async (photoId: number) => {
+        if (!confirm('Vai tiešām vēlies dzēst šo foto?')) return;
+
+        try {
+            await axios.delete(route('profile.setup.photo.delete', photoId));
+            router.reload({ only: ['photos'] });
+        } catch (error) {
+            setUploadError('Kļūda dzēšot foto');
+        }
     };
 
     const handleContinue = () => {
@@ -80,7 +90,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
             setUploadError('Jāpievieno vismaz viena fotogrāfija!');
             return;
         }
-        router.post('/profile/setup/step-4');
+        router.post(route('profile.setup.step4.store'));
     };
 
     return (

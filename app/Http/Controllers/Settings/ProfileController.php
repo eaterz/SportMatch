@@ -19,12 +19,29 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/profile', [
-            'user' => Auth::user(),
-            'mustVerifyEmail' => true,
+            'user' => Auth::user()->load('profile'),
+            'mustVerifyEmail' => Auth::user() instanceof MustVerifyEmail,
             'status' => session('status'),
-            'isOAuthUser' => Auth::user()->oauth_provider !== null,
         ]);
     }
+
+// Add this method
+    public function sendVerification(Request $request)
+    {
+        $user = $request->user();
+
+        // Don't send if already verified or OAuth user
+        if ($user->hasVerifiedEmail() || $user->oauth_provider) {
+            return back();
+        }
+
+        $user->sendEmailVerificationNotification();
+        \Log::info('Verification email sent to: '.$user->email);
+
+
+        return back()->with('status', 'verification-link-sent');
+    }
+
 
     /**
      * Update the user's profile settings.

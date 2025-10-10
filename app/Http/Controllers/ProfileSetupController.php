@@ -170,25 +170,23 @@ class ProfileSetupController extends Controller
     public function uploadSetupPhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         $user = Auth::user();
         $profile = $user->profile;
 
         if (!$profile) {
-            return back()->with('error', 'Profils nav atrasts!');
+            return response()->json(['error' => 'Profils nav atrasts!'], 404);
         }
 
-        // Check photo limit (max 3)
         if ($profile->photos()->count() >= 3) {
-            return back()->with('error', 'Maksimums 3 fotogrāfijas!');
+            return response()->json(['error' => 'Maksimums 3 fotogrāfijas!'], 400);
         }
 
         $file = $request->file('photo');
         $path = $file->store('profile-photos', 'public');
 
-        // If this is the first photo, make it main
         $isFirstPhoto = $profile->photos()->count() === 0;
 
         $photo = UserProfilePhoto::create([
@@ -197,18 +195,19 @@ class ProfileSetupController extends Controller
             'is_main' => $isFirstPhoto,
         ]);
 
-        return back()->with('success', 'Foto pievienota!');
+        return response()->json(['success' => true, 'message' => 'Foto pievienota!']);
     }
 
+
     // Delete photo during setup
-    public function deleteSetupPhoto($photoId)
+    public function deleteSetupPhoto(UserProfilePhoto $photo)
     {
         $user = Auth::user();
-        $photo = UserProfilePhoto::where('id', $photoId)
-            ->whereHas('userProfile', function($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->firstOrFail();
+
+        // Check ownership
+        if ($photo->userProfile->user_id !== $user->id) {
+            abort(403);
+        }
 
         // Delete file from storage
         if (Storage::disk('public')->exists($photo->photo_path)) {
@@ -226,26 +225,22 @@ class ProfileSetupController extends Controller
             }
         }
 
-        return back()->with('success', 'Foto dzēsta!');
+        return response()->json(['success' => true, 'message' => 'Foto dzēsta!']);
     }
 
     // Set main photo during setup
-    public function setMainSetupPhoto($photoId)
+    public function setMainSetupPhoto(UserProfilePhoto $photo)
     {
         $user = Auth::user();
-        $photo = UserProfilePhoto::where('id', $photoId)
-            ->whereHas('userProfile', function($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->firstOrFail();
 
-        // Remove main from all photos
+        if ($photo->userProfile->user_id !== $user->id) {
+            abort(403);
+        }
+
         $user->profile->photos()->update(['is_main' => false]);
-
-        // Set this photo as main
         $photo->update(['is_main' => true]);
 
-        return back()->with('success', 'Galvenā foto iestatīta!');
+        return response()->json(['success' => true, 'message' => 'Galvenā foto iestatīta!']);
     }
 
     // Solis 5: Bio un pabeigšana (previously step 4)

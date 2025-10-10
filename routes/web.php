@@ -11,6 +11,7 @@ use App\Http\Controllers\PhotoVerificationController;
 use App\Http\Controllers\ProfileSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PartnerSearchController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -31,7 +32,18 @@ Route::controller(GoogleAuthController::class)
     });
 
 
-//Profile Setup
+// Profile Setup - Photo Routes (must come before step routes)
+Route::middleware('auth')
+    ->prefix('profile/setup')
+    ->name('profile.setup.')
+    ->controller(ProfileSetupController::class)
+    ->group(function () {
+        Route::post('/photo/upload', 'uploadSetupPhoto')->name('photo.upload');
+        Route::delete('/photo/{photo}', 'deleteSetupPhoto')->name('photo.delete');
+        Route::post('/photo/{photo}/main', 'setMainSetupPhoto')->name('photo.main');
+    });
+
+// Profile Setup - Step Routes
 Route::middleware('auth')
     ->prefix('profile/setup')
     ->name('profile.setup.')
@@ -45,12 +57,9 @@ Route::middleware('auth')
 
         Route::get('/step-3', 'step3')->name('step3');
         Route::post('/step-3', 'storeStep3')->name('step3.store');
-        // NEW: Photo upload step
+
         Route::get('/step-4', 'step4')->name('step4');
         Route::post('/step-4', 'storeStep4')->name('step4.store');
-        Route::post('/photo/upload', 'uploadSetupPhoto')->name('photo.upload');
-        Route::delete('/photo/{photo}', 'deleteSetupPhoto')->name('photo.delete');
-        Route::post('/photo/{photo}/main', 'setMainSetupPhoto')->name('photo.main');
 
         Route::get('/step-5', 'step5')->name('step5');
         Route::post('/step-5', 'storeStep5')->name('step5.store');
@@ -61,6 +70,13 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
     //Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+
+
+    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+        return redirect('/dashboard')->with('success', 'E-pasts apstiprināts!');
+    })->middleware(['auth', 'signed'])->name('verification.verify');
 
     //Partner Search
     Route::controller(PartnerSearchController::class)
@@ -131,6 +147,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/delete-all', [NotificationController::class, 'deleteAll'])->name('notifications.deleteAll');
+
 
     Route::controller(GroupsController::class)
         ->prefix('groups')
