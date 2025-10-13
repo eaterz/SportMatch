@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 
@@ -33,9 +34,15 @@ class GoogleAuthController extends Controller
             if ($user) {
                 // Update OAuth info if not set
                 if (!$user->oauth_provider) {
-                    $user->update([
-                        'oauth_provider' => 'google',
-                        'oauth_id' => $googleUser->id,
+                    $user->oauth_provider = 'google';
+                    $user->oauth_id = $googleUser->id;
+                    $user->save();
+
+                    // Log for debugging
+                    Log::info('Updated OAuth info for user', [
+                        'user_id' => $user->id,
+                        'oauth_provider' => $user->oauth_provider,
+                        'oauth_id' => $user->oauth_id
                     ]);
                 }
 
@@ -64,10 +71,17 @@ class GoogleAuthController extends Controller
                 'name' => $firstName,
                 'lastname' => $lastName ?: $firstName,
                 'email' => $googleUser->email,
-                'password' => Hash::make(Str::random(24)), // Random password
-                'email_verified_at' => now(), // Auto-verify email for Google users
+                'password' => Hash::make(Str::random(24)),
+                'email_verified_at' => now(),
                 'oauth_provider' => 'google',
                 'oauth_id' => $googleUser->id,
+            ]);
+
+            // Log for debugging
+            Log::info('Created new OAuth user', [
+                'user_id' => $user->id,
+                'oauth_provider' => $user->oauth_provider,
+                'oauth_id' => $user->oauth_id
             ]);
 
             Auth::login($user);
@@ -77,6 +91,12 @@ class GoogleAuthController extends Controller
                 ->with('success', 'Konts izveidots! Tagad aizpildi savu profilu.');
 
         } catch (\Exception $e) {
+            // Log the actual error
+            Log::error('Google OAuth error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return redirect()->route('login')
                 ->with('error', 'Neizdevās pieslēgties ar Google. Lūdzu, mēģini vēlreiz.');
         }

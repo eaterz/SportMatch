@@ -34,6 +34,7 @@ class FriendsController extends Controller
 
             $friend = User::with(['profile', 'sports'])->find($friendId);
 
+            // Only add friend if they exist and have a profile
             if ($friend && $friend->profile) {
                 // Get main photo
                 $mainPhoto = UserProfilePhoto::where('user_profile_id', $friend->profile->id)
@@ -43,9 +44,9 @@ class FriendsController extends Controller
                 if ($mainPhoto) {
                     $friend->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
                 }
-            }
 
-            $friends->push($friend);
+                $friends->push($friend); // Only push if friend exists
+            }
         }
 
         // Get pending requests received
@@ -56,18 +57,25 @@ class FriendsController extends Controller
             ->map(function($friendship) {
                 $sender = $friendship->sender;
 
-                if ($sender->profile) {
-                    $mainPhoto = UserProfilePhoto::where('user_profile_id', $sender->profile->id)
-                        ->where('is_main', true)
-                        ->first();
+                // Check if sender exists and has profile
+                if (!$sender || !$sender->profile) {
+                    return null;
+                }
 
-                    if ($mainPhoto) {
-                        $sender->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
-                    }
+                $mainPhoto = UserProfilePhoto::where('user_profile_id', $sender->profile->id)
+                    ->where('is_main', true)
+                    ->first();
+
+                if ($mainPhoto) {
+                    $sender->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
                 }
 
                 return $sender;
-            });
+            })
+            ->filter(function($sender) {
+                return $sender !== null; // Filter out null values
+            })
+            ->values(); // Re-index the collection
 
         // Get pending requests sent
         $pendingSent = Friendship::where('sender_id', $user->id)
@@ -77,17 +85,25 @@ class FriendsController extends Controller
             ->map(function($friendship) {
                 $receiver = $friendship->receiver;
 
-                if ($receiver->profile) {
-                    $mainPhoto = UserProfilePhoto::where('user_profile_id', $receiver->profile->id)
-                        ->where('is_main', true)
-                        ->first();
-
-                    if ($mainPhoto) {
-                        $receiver->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
-                    }
+                // Check if receiver exists and has profile
+                if (!$receiver || !$receiver->profile) {
+                    return null;
                 }
+
+                $mainPhoto = UserProfilePhoto::where('user_profile_id', $receiver->profile->id)
+                    ->where('is_main', true)
+                    ->first();
+
+                if ($mainPhoto) {
+                    $receiver->profile->main_photo = '/storage/' . $mainPhoto->photo_path;
+                }
+
                 return $receiver;
-            });
+            })
+            ->filter(function($receiver) {
+                return $receiver !== null; // Filter out null values
+            })
+            ->values(); // Re-index the collection
 
         return Inertia::render('Friends', [
             'user' => $user,
@@ -113,9 +129,10 @@ class FriendsController extends Controller
                 'accepted_at' => now()
             ]);
 
+            NotificationService::friendRequestAccepted($user, User::find($senderId));
+
             return back()->with('success', 'Draudzības pieprasījums pieņemts!');
         }
-        NotificationService::friendRequestAccepted($user, User::find($senderId));
 
         return back()->with('error', 'Pieprasījums nav atrasts');
     }

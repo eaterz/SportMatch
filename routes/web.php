@@ -166,7 +166,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             // Members
             Route::get('/{group}/members', 'members')->name('members');
             Route::post('/{group}/members/{member}/approve', 'approveMember')->name('members.approve');
-            Route::delete('/{group}/members/{member}', 'removeMember')->name('members.remove');
+            Route::post('/{group}/members/{member}', 'removeMember')->name('members.remove');
 
             // Posts
             Route::post('/{group}/posts', 'createPost')->name('posts.create');
@@ -195,7 +195,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             // Administration
             Route::get('/{group}/settings', 'settings')->name('settings');
             Route::put('/{group}', 'update')->name('update');
-            Route::delete('/{group}', 'destroy')->name('destroy');
+            Route::post('/{group}', 'destroy')->name('destroy');
         });
 
     // Photo Verification

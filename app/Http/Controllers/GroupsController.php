@@ -157,14 +157,10 @@ class GroupsController extends Controller
     {
         $user = Auth::user();
 
-
         $group->load(['creator', 'sports', 'city']);
-
         $group->loadCount('approvedMembers');
 
         $cities = \App\Models\City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
-
-
 
         $group->is_member = $group->isMember($user);
         $group->is_admin = $group->isAdmin($user);
@@ -178,7 +174,7 @@ class GroupsController extends Controller
             ->take(10)
             ->get()
             ->map(function($member) {
-                if ($member->profile) {
+                if ($member && $member->profile) {
                     $mainPhoto = \App\Models\UserProfilePhoto::where('user_profile_id', $member->profile->id)
                         ->where('is_main', true)
                         ->first();
@@ -203,7 +199,13 @@ class GroupsController extends Controller
             ->limit(10)
             ->get()
             ->map(function($post) use ($user) {
+
+                if (!$post->user) {
+                    return null;
+                }
+
                 $post->is_liked = $post->isLikedBy($user);
+
 
                 if ($post->user->profile) {
                     $mainPhoto = \App\Models\UserProfilePhoto::where('user_profile_id', $post->user->profile->id)
@@ -214,8 +216,10 @@ class GroupsController extends Controller
                     }
                 }
 
+
                 $post->comments->each(function($comment) {
-                    if ($comment->user->profile) {
+
+                    if ($comment->user && $comment->user->profile) {
                         $mainPhoto = \App\Models\UserProfilePhoto::where('user_profile_id', $comment->user->profile->id)
                             ->where('is_main', true)
                             ->first();
@@ -226,8 +230,9 @@ class GroupsController extends Controller
                 });
 
                 return $post;
-            });
-
+            })
+            ->filter()
+            ->values();
 
         $upcomingEvents = $group->upcomingEvents()
             ->with(['creator', 'city'])
@@ -235,12 +240,16 @@ class GroupsController extends Controller
             ->limit(5)
             ->get()
             ->map(function($event) use ($user) {
+
+                if (!$event->creator) {
+                    return null;
+                }
+
                 $event->is_participating = $event->isParticipating($user);
                 return $event;
-            });
-
-
-
+            })
+            ->filter()
+            ->values();
 
         return Inertia::render('Groups/Show', [
             'user' => $user,
@@ -253,7 +262,6 @@ class GroupsController extends Controller
             'cities' => $cities
         ]);
     }
-
 
 
 

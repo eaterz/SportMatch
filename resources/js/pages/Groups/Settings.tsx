@@ -531,7 +531,7 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                             </button>
                             <Link
                                 href={route('groups.destroy', group.id)}
-                                method="delete"
+                                method="post"
                                 as="button"
                                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-center"
                             >

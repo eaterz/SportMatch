@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import axios from 'axios';
 import {
     ArrowLeft, Users, Shield, UserCheck, Clock,
     Search, Filter, MoreVertical, Crown
@@ -39,8 +40,11 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
     const [selectedMember, setSelectedMember] = useState<number | null>(null);
+    const [localMembers, setLocalMembers] = useState(members);
+    const [localPendingMembers, setLocalPendingMembers] = useState(pendingMembers);
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const filteredMembers = members.filter(member => {
+    const filteredMembers = localMembers.filter(member => {
         const matchesSearch = `${member.name} ${member.lastname || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = filterRole === 'all' || member.pivot?.role === filterRole;
         return matchesSearch && matchesRole;
@@ -90,17 +94,67 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
         }
     };
 
-    const approveMember = (memberId: number) => {
-        router.post(`/groups/${group.id}/members/${memberId}/approve`, {}, {
-            preserveScroll: true,
-        });
+    const approveMember = async (memberId: number) => {
+        if (isProcessing) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await axios.post(
+                `/groups/${group.id}/members/${memberId}/approve`,
+                {},
+                {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                }
+            );
+
+            // Move member from pending to approved
+            const approvedMember = localPendingMembers.find(m => m.id === memberId);
+            if (approvedMember) {
+                setLocalPendingMembers(prev => prev.filter(m => m.id !== memberId));
+                setLocalMembers(prev => [...prev, {
+                    ...approvedMember,
+                    pivot: { role: 'member', joined_at: new Date().toISOString() }
+                }]);
+            }
+        } catch (error: any) {
+            console.error('Error approving member:', error);
+            const message = error.response?.data?.message || 'Kļūda apstiprinot dalībnieku';
+            alert(message);
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
-    const removeMember = (memberId: number, memberName: string) => {
-        if (confirm(`Vai tiešām vēlaties noņemt ${memberName} no grupas?`)) {
-            router.delete(`/groups/${group.id}/members/${memberId}`, {
-                preserveScroll: true,
-            });
+    const removeMember = async (memberId: number, memberName: string) => {
+        if (isProcessing) return;
+
+        if (!confirm(`Vai tiešām vēlaties noņemt ${memberName} no grupas?`)) {
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            await axios.post(
+                `/groups/${group.id}/members/${memberId}`,
+                {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                }
+            );
+
+            // Remove member from both lists
+            setLocalMembers(prev => prev.filter(m => m.id !== memberId));
+            setLocalPendingMembers(prev => prev.filter(m => m.id !== memberId));
+            setSelectedMember(null);
+        } catch (error: any) {
+            console.error('Error removing member:', error);
+            const message = error.response?.data?.message || 'Kļūda noņemot dalībnieku';
+            alert(message);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -126,18 +180,17 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                             <p className="text-gray-600">{group.name}</p>
                         </div>
                     </div>
-
                 </div>
 
                 {/* Pending Members (Admin only) */}
-                {is_admin && pendingMembers.length > 0 && (
+                {is_admin && localPendingMembers.length > 0 && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8">
                         <h2 className="font-semibold text-orange-900 mb-4 flex items-center gap-2">
                             <Clock className="w-5 h-5" />
-                            Gaidošie dalībnieki ({pendingMembers.length})
+                            Gaidošie dalībnieki ({localPendingMembers.length})
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {pendingMembers.map(member => (
+                            {localPendingMembers.map(member => (
                                 <div key={member.id} className="bg-white border border-orange-200 rounded-lg p-4">
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
@@ -171,13 +224,15 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => approveMember(member.id)}
-                                            className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+                                            disabled={isProcessing}
+                                            className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Apstiprināt
                                         </button>
                                         <button
                                             onClick={() => removeMember(member.id, `${member.name} ${member.lastname || ''}`)}
-                                            className="flex-1 px-3 py-1 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors"
+                                            disabled={isProcessing}
+                                            className="flex-1 px-3 py-1 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Noraidīt
                                         </button>
@@ -270,7 +325,8 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                                             <div className="relative">
                                                 <button
                                                     onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
-                                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                                    disabled={isProcessing}
+                                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <MoreVertical className="w-4 h-4" />
                                                 </button>
@@ -281,9 +337,9 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                                                             <button
                                                                 onClick={() => {
                                                                     removeMember(member.id, `${member.name} ${member.lastname || ''}`);
-                                                                    setSelectedMember(null);
                                                                 }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                                                disabled={isProcessing}
+                                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 Noņemt no grupas
                                                             </button>
@@ -310,14 +366,14 @@ export default function GroupMembers({ user, group, members, pendingMembers, is_
                     )}
                 </div>
 
-            {/* Click outside to close dropdown */}
-            {selectedMember && (
-                <div
-                    className="fixed inset-0 z-0"
-                    onClick={() => setSelectedMember(null)}
-                />
-            )}
-        </div>
+                {/* Click outside to close dropdown */}
+                {selectedMember && (
+                    <div
+                        className="fixed inset-0 z-0"
+                        onClick={() => setSelectedMember(null)}
+                    />
+                )}
+            </div>
         </div>
     );
 }

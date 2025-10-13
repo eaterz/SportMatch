@@ -152,12 +152,13 @@ class VerificationReviewController extends Controller
         // Send notification to user
         NotificationService::verificationApproved($verificationRequest->user);
 
-        // Clean up old verification photos after approval
-        $this->schedulePhotoCleanup($verificationRequest);
+        // 🔥 Immediately delete verification photos after user is verified
+        $this->cleanupPhotos($verificationRequest);
 
         return redirect()->route('admin.verification.index')
             ->with('success', 'Verifikācija apstiprināta veiksmīgi!');
     }
+
 
     /**
      * Reject verification request

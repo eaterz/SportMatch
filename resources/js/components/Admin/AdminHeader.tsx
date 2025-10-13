@@ -33,6 +33,12 @@ export function AdminHeader({ title }: AdminHeaderProps) {
                             <span>Panelis</span>
                         </Link>
                         <Link
+                            href="/admin/verification"
+                            className="px-6 py-3 bg-white hover:bg-gray-200 text-black rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                            <span>Pieteikumi</span>
+                        </Link>
+                        <Link
                             href="/logout"
                             method="post"
                             as="button"

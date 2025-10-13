@@ -299,11 +299,13 @@ const PartnerProfileModal: React.FC<PartnerProfileModalProps> = ({
                                 </div>
                             )}
 
-                            {partner.distance && (
+                            {partner.distance ? (
                                 <div className="absolute top-3 sm:top-6 right-3 sm:right-6 bg-black text-white px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold">
                                     {partner.distance} km
                                 </div>
-                            )}
+                            ) : (<div className="absolute top-3 sm:top-6 right-3 sm:right-6 bg-black text-white px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold">
+                                Vienā pilsētā
+                            </div>)}
                         </div>
                     </div>
 

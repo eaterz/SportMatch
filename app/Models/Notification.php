@@ -118,42 +118,49 @@ class Notification extends Model
 
     public function getActionUrl(): ?string
     {
-        $data = $this->data;
+        $data = $this->data ?? [];
 
         switch ($this->type) {
             case 'friend_request':
                 return '/friends';
 
             case 'friend_request_accepted':
-                return "/chat/{$data['friend_id']}";
+                return isset($data['friend_id']) ? "/chat/{$data['friend_id']}" : null;
 
             case 'new_message':
-                return "/chat/{$data['sender_id']}";
+                return isset($data['sender_id']) ? "/chat/{$data['sender_id']}" : null;
 
             case 'group_post_comment':
-                return "/groups/{$data['group_id']}#post-{$data['post_id']}";
+                return (isset($data['group_id'], $data['post_id']))
+                    ? "/groups/{$data['group_id']}#post-{$data['post_id']}"
+                    : null;
 
             case 'group_event_created':
             case 'group_event_reminder':
-                return "/groups/{$data['group_id']}/events/{$data['event_id']}";
+                return (isset($data['group_id'], $data['event_id']))
+                    ? "/groups/{$data['group_id']}/events/{$data['event_id']}"
+                    : null;
 
             case 'group_member_joined':
-                return "/groups/{$data['group_id']}/members";
+                return isset($data['group_id']) ? "/groups/{$data['group_id']}/members" : null;
 
             case 'group_invitation':
-                return "/groups/{$data['group_id']}";
+                return isset($data['group_id']) ? "/groups/{$data['group_id']}" : null;
 
             case 'event_feedback_received':
-                return "/groups/{$data['group_id']}/events/{$data['event_id']}/feedback";
+                return (isset($data['group_id'], $data['event_id']))
+                    ? "/groups/{$data['group_id']}/events/{$data['event_id']}/feedback"
+                    : null;
 
             case 'verification_approved':
             case 'verification_rejected':
-                return "/profile/{$data['user_id']}";
+                return isset($data['user_id']) ? "/profile/{$data['user_id']}" : null;
 
             default:
                 return null;
         }
     }
+
 
     public function scopeUnread($query)
     {

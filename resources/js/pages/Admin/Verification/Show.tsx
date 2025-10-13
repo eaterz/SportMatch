@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
+import axios from 'axios';
 import { AdminHeader } from '@/components/Admin/AdminHeader';
 import { StatusBadge } from '@/components/Admin/StatusBadge';
 import { User, Camera, CheckCircle, XCircle, Clock, ArrowLeft, Eye, Calendar, FileText } from 'lucide-react';
@@ -31,20 +32,34 @@ export default function Show({ verificationRequest, photos, previousAttempts, us
         reason: ''
     });
 
-    const handleApprove = () => {
-        if (confirm('Vai esat pārliecināts, ka vēlaties apstiprināt šo verifikāciju?')) {
-            post(route('admin.verification.approve', verificationRequest.id));
+    const handleApprove = async () => {
+        if (!confirm('Vai esat pārliecināts, ka vēlaties apstiprināt šo verifikāciju?')) return;
+
+        try {
+            await axios.post(`/admin/verification/${verificationRequest.id}/approve`);
+            router.visit(route('admin.verification.index')); // Redirect or reload
+        } catch (error) {
+            console.error('Approve error:', error);
+            alert('Kļūda apstiprinot verifikāciju');
         }
     };
 
-    const handleReject = () => {
-        rejectForm.post(route('admin.verification.reject', verificationRequest.id), {
-            onSuccess: () => {
-                setShowRejectModal(false);
-                rejectForm.reset();
-            }
-        });
+
+    const handleReject = async () => {
+        try {
+            await axios.post(`/admin/verification/${verificationRequest.id}/reject`, {
+                reason: rejectForm.data.reason
+            });
+
+            setShowRejectModal(false);
+            rejectForm.reset();
+            router.visit(route('admin.verification.index')); // optional refresh
+        } catch (error) {
+            console.error('Reject error:', error);
+            alert('Kļūda noraidot verifikāciju');
+        }
     };
+
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleString('lv-LV', {

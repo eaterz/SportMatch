@@ -11,19 +11,30 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PartnerSearchController extends Controller
 {
     public function index(Request $request)
     {
         $user = Auth::user();
-        $user->load('profile.city'); // Load city relationship
+        $user->load('profile.city');
+
+        // DEBUG: Check current user's city
+        Log::info('Current user city data:', [
+            'user_id' => $user->id,
+            'has_profile' => !!$user->profile,
+            'has_city' => !!optional($user->profile)->city,
+            'city_name' => optional(optional($user->profile)->city)->name,
+            'latitude' => optional(optional($user->profile)->city)->latitude,
+            'longitude' => optional(optional($user->profile)->city)->longitude,
+        ]);
 
         $query = User::where('id', '!=', $user->id)
             ->where('is_admin', false)
             ->with([
                 'profile.photos',
-                'profile.city', // ADD THIS
+                'profile.city',
                 'sports',
                 'availabilitySchedules'
             ]);
@@ -67,6 +78,8 @@ class PartnerSearchController extends Controller
                     $maxDistance
                 )->pluck('id')->toArray();
 
+                Log::info('Nearby cities found:', ['count' => count($nearbyCityIds), 'ids' => $nearbyCityIds]);
+
                 $query->whereHas('profile', function($q) use ($nearbyCityIds) {
                     $q->whereIn('city_id', $nearbyCityIds);
                 });
@@ -102,9 +115,37 @@ class PartnerSearchController extends Controller
 
                     // Calculate distance if both users have cities
                     if ($user->profile && $user->profile->city) {
-                        $distance = $user->profile->city->distanceTo($partner->profile->city);
-                        $partner->distance = round($distance, 1);
+                        try {
+                            $distance = $user->profile->city->distanceTo($partner->profile->city);
+                            $partner->distance = round($distance, 1);
+
+                            // DEBUG: Log successful distance calculation
+                            Log::info('Distance calculated:', [
+                                'partner' => $partner->name,
+                                'from_city' => $user->profile->city->name,
+                                'to_city' => $partner->profile->city->name,
+                                'distance_km' => $partner->distance
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Distance calculation failed:', [
+                                'partner' => $partner->name,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    } else {
+                        // DEBUG: Log why distance wasn't calculated
+                        Log::warning('Distance not calculated for partner:', [
+                            'partner_id' => $partner->id,
+                            'partner_name' => $partner->name,
+                            'user_has_profile' => !!$user->profile,
+                            'user_has_city' => !!optional($user->profile)->city,
+                        ]);
                     }
+                } else {
+                    Log::warning('Partner has no city:', [
+                        'partner_id' => $partner->id,
+                        'partner_name' => $partner->name,
+                    ]);
                 }
             }
 
@@ -141,6 +182,12 @@ class PartnerSearchController extends Controller
         if ($request->filled('max_distance') && $user->profile && $user->profile->city_id) {
             $partners = $partners->sortBy('distance')->values();
         }
+
+        // DEBUG: Log final partner count and sample data
+        Log::info('Partners to return:', [
+            'count' => $partners->count(),
+            'first_partner_distance' => optional($partners->first())->distance ?? 'null',
+        ]);
 
         $sports = Sport::where('is_active', true)
             ->orderBy('name')

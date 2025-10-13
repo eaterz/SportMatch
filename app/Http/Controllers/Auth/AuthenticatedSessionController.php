@@ -36,9 +36,14 @@ class AuthenticatedSessionController extends Controller
         // Check if the authenticated user is an admin
         $user = Auth::user();
 
+
         if ($user && $user->is_admin) {
             return redirect()->route('admin.verification.dashboard');
         }
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'email' => ['Test error message'],
+            'password' => ['Another test error'],
+        ]);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

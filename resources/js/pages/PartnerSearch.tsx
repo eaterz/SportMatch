@@ -248,6 +248,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], cities
                                         Sporta veids
                                     </label>
                                     <select
+                                        data-testid="sport-select"
                                         value={selectedSport}
                                         onChange={(e) => setSelectedSport(e.target.value)}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 font-medium"
@@ -323,6 +324,7 @@ export default function PartnerSearch({ user, partners = [], sports = [], cities
                                 <div
                                     className="relative h-56 bg-gray-100 cursor-pointer group overflow-hidden"
                                     onClick={() => openPartnerModal(partner)}
+                                    id={`partnerModal-${partner.id}`}
                                 >
                                     {partner.profile?.main_photo ? (
                                         <img
@@ -340,11 +342,13 @@ export default function PartnerSearch({ user, partners = [], sports = [], cities
                                             <User className="w-24 h-24 text-gray-400" />
                                         </div>
                                     )}
-                                    {partner.distance && (
+                                    {partner.distance ? (
                                         <div className="absolute top-3 right-3 bg-black text-white px-3 py-1.5 rounded-full text-xs font-bold">
                                             {partner.distance} km
                                         </div>
-                                    )}
+                                    ) : (<div className="absolute top-3 right-3 bg-black text-white px-3 py-1.5 rounded-full text-xs font-bold">
+                                        Vienā pilsētā
+                                    </div>)}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                                         <span className="text-white font-bold text-lg">Skatīt profilu</span>
                                     </div>

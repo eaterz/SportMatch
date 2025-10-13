@@ -171,7 +171,7 @@ it('can filter partners by tennis sport', function () {
     $page = visit('/partners');
 
     $page->click('Filtri')
-        ->select('sport', (string) $this->tennis->id)
+        ->select('@sport-select', (string) $this->tennis->id)
         ->click('Pielietot filtrus')
         ->assertSee('Tennis')
         ->assertSee('Multi')
@@ -184,7 +184,7 @@ it('can filter partners by basketball sport', function () {
     $page = visit('/partners');
 
     $page->click('Filtri')
-        ->select('sport', (string) $this->basketball->id)
+        ->select('@sport-select', (string) $this->basketball->id)
         ->click('Pielietot filtrus')
         ->assertSee('Basketball')
         ->assertSee('Multi')
@@ -197,7 +197,7 @@ it('shows no results when filtering by football sport', function () {
     $page = visit('/partners');
 
     $page->click('Filtri')
-        ->select('sport', (string) $this->football->id)
+        ->select('@sport-select', (string) $this->football->id)
         ->click('Pielietot filtrus')
         ->assertSee('Nav atrasti partneri')
         ->assertDontSee('Tennis')
@@ -210,7 +210,7 @@ it('can clear sport filter', function () {
     $page = visit('/partners');
 
     $page->click('Filtri')
-        ->select('Sporta veids', (string) $this->tennis->id)
+        ->select('@sport-select', (string) $this->tennis->id)
         ->click('Pielietot filtrus')
         ->assertDontSee('Basketball')
         ->click('Notīrīt filtrus')
@@ -233,7 +233,7 @@ it('can click partner card to view profile modal', function () {
 
     $page = visit('/partners');
 
-    $page->click('Tennis')
+    $page->click("#partnerModal-{$this->tennisPlayer->id}")
         ->assertSee('I love playing tennis');
 });
 
