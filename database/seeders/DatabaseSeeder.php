@@ -56,6 +56,29 @@ class DatabaseSeeder extends Seeder
             'verified_at' => now(),
             'verification_method' => 'manual'
         ]);
+        // Create  user
+        $user = User::firstOrCreate(
+            ['email' => 'user@sportmatch.lv'],
+            [
+                'name' => 'user',
+                'lastname' => 'SportMatch',
+                'password' => Hash::make('Password123!'),
+                'is_admin' => false,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Create admin profile
+        $user->profile()->firstOrCreate([
+            'birth_date' => '1990-01-01',
+            'phone' => '+37112345678',
+            'gender' => 'male',
+            'bio' => 'SportMatch user',
+            'city_id' => 1,
+            'is_verified' => true,
+            'verified_at' => now(),
+            'verification_method' => 'manual'
+        ]);
     }
 
 

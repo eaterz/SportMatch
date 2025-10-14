@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search, MapPin, Users, Plus, Lock, Globe, Filter, Calendar } from 'lucide-react';
+import { Search, MapPin, Users, Plus, Lock, Filter} from 'lucide-react';
 import Navbar from '@/components/navbar';
 
 interface User {
@@ -14,6 +14,12 @@ interface Sport {
     id: number;
     name: string;
     icon: string;
+}
+
+interface City {
+    id: number;
+    name: string;
+    region: string;
 }
 
 interface Group {
@@ -42,24 +48,34 @@ interface Props {
         meta: any;
     };
     sports: Sport[];
+    cities: City[];
     filters?: {
         search?: string;
         sport_id?: string;
-        location?: string;
+        city_id?: string;
     };
 }
 
-export default function GroupsIndex({ user, myGroups = [], publicGroups, sports = [], filters = {} }: Props) {
+export default function GroupsIndex({ user, myGroups = [], publicGroups, sports = [], cities = [], filters = {} }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedSport, setSelectedSport] = useState(filters.sport_id || '');
-    const [location, setLocation] = useState(filters.location || '');
+    const [selectedCityId, setSelectedCityId] = useState(filters.city_id || '');
+    const [searchCity, setSearchCity] = useState('');
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+
+    const filteredCities = cities.filter(city =>
+        city.name.toLowerCase().includes(searchCity.toLowerCase()) ||
+        city.region.toLowerCase().includes(searchCity.toLowerCase())
+    );
+
+    const selectedCity = cities.find(c => c.id.toString() === selectedCityId.toString());
 
     const handleSearch = () => {
         router.get('/groups', {
             search: searchTerm,
             sport_id: selectedSport,
-            location: location,
+            city_id: selectedCityId,
         }, {
             preserveState: true,
             preserveScroll: true,
@@ -69,7 +85,8 @@ export default function GroupsIndex({ user, myGroups = [], publicGroups, sports 
     const clearFilters = () => {
         setSearchTerm('');
         setSelectedSport('');
-        setLocation('');
+        setSelectedCityId('');
+        setSearchCity('');
         router.get('/groups', {}, {
             preserveState: true,
             preserveScroll: true,
@@ -343,18 +360,66 @@ export default function GroupsIndex({ user, myGroups = [], publicGroups, sports 
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-bold text-gray-900 mb-3">
-                                        Atrašanās vieta
+                                        <MapPin className="inline w-4 h-4 mr-1" />
+                                        Pilsēta
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        placeholder="Rīga, Latvija..."
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 font-medium"
-                                    />
+                                    <div className="relative">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={selectedCity ? selectedCity.name : searchCity}
+                                                onChange={(e) => {
+                                                    setSearchCity(e.target.value);
+                                                    setShowCityDropdown(true);
+                                                    if (!e.target.value) {
+                                                        setSelectedCityId('');
+                                                    }
+                                                }}
+                                                onFocus={() => setShowCityDropdown(true)}
+                                                placeholder="Meklēt pilsētu..."
+                                                className="w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 font-medium"
+                                            />
+                                        </div>
+
+                                        {showCityDropdown && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-10"
+                                                    onClick={() => setShowCityDropdown(false)}
+                                                />
+                                                <div className="absolute z-20 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                    {filteredCities.length > 0 ? (
+                                                        filteredCities.map(city => (
+                                                            <div
+                                                                key={city.id}
+                                                                onClick={() => {
+                                                                    setSelectedCityId(city.id.toString());
+                                                                    setSearchCity(city.name);
+                                                                    setShowCityDropdown(false);
+                                                                }}
+                                                                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
+                                                                    selectedCityId === city.id.toString() ? 'bg-blue-50' : ''
+                                                                }`}
+                                                            >
+                                                                <div className="font-medium text-gray-900">{city.name}</div>
+                                                                <div className="text-sm text-gray-500">{city.region} reģions</div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-4 py-2 text-gray-500 text-sm">
+                                                            Nav atrasta pilsēta
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
+
                                 <div className="flex items-end">
                                     <button
                                         onClick={clearFilters}

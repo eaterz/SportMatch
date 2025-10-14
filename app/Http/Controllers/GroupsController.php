@@ -33,14 +33,21 @@ class GroupsController extends Controller
                 $q->where('user_id', $user->id)
                     ->where('status', 'approved');
             })
-            ->with(['creator', 'sports', 'members'])
+            ->with(['creator', 'sports', 'members', 'city'])
             ->withCount('approvedMembers')
-            ->get();
+            ->get()
+            ->map(function($group) {
+                // Add city name as location for display
+                if ($group->city) {
+                    $group->location = $group->city->name;
+                }
+                return $group;
+            });
 
         // Visas publiskās grupas
         $query = Group::where('is_active', true)
             ->where('is_private', false)
-            ->with(['creator', 'sports'])
+            ->with(['creator', 'sports', 'city'])
             ->withCount('approvedMembers');
 
         // Meklēšana
@@ -49,7 +56,9 @@ class GroupsController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
+                    ->orWhereHas('city', function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -60,31 +69,39 @@ class GroupsController extends Controller
             });
         }
 
-        // Filtrēt pēc atrašanās vietas
-        if ($request->filled('location')) {
-            $query->where('location', 'like', "%{$request->location}%");
+        // Filtrēt pēc pilsētas
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
         }
 
         $publicGroups = $query->paginate(12);
 
-        // Pievieno dalības statusu
+        // Pievieno dalības statusu un location
         $publicGroups->through(function($group) use ($user) {
             $group->is_member = $group->isMember($user);
             $group->is_admin = $group->isAdmin($user);
             $group->has_pending_request = $group->pendingMembers()
                 ->where('user_id', $user->id)
                 ->exists();
+
+            // Add city name as location for display
+            if ($group->city) {
+                $group->location = $group->city->name;
+            }
+
             return $group;
         });
 
         $sports = Sport::where('is_active', true)->get();
+        $cities = City::orderBy('population', 'desc')->get(['id', 'name', 'region']);
 
         return Inertia::render('Groups/Index', [
             'user' => $user,
             'myGroups' => $myGroups,
             'publicGroups' => $publicGroups,
             'sports' => $sports,
-            'filters' => $request->only(['search', 'sport_id', 'location'])
+            'cities' => $cities,
+            'filters' => $request->only(['search', 'sport_id', 'city_id'])
         ]);
     }
 

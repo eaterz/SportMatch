@@ -76,21 +76,35 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
         $user = $request->user();
 
+        // Only validate password for non-OAuth users
+        if (!$user->oauth_provider) {
+            $request->validate([
+                'password' => ['required', 'current_password'],
+            ], [
+                'password.required' => 'Parole ir obligāta',
+                'password.current_password' => 'Nepareiza parole',
+            ]);
+        }
+
         Auth::logout();
+
+        // Delete user's related data if needed
+        if ($user->profile && $user->profile->photos) {
+            foreach ($user->profile->photos as $photo) {
+                \Storage::disk('public')->delete($photo->photo_path);
+            }
+        }
 
         $user->delete();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return Inertia::location(route('home'));
+
     }
 }

@@ -10,9 +10,16 @@ configureEcho({
     broadcaster: 'pusher',
 });
 
-// Set CSRF token for all axios requests
-axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
+// Get CSRF token from meta tag
+const token = document.head.querySelector('meta[name="csrf-token"]');
+
+if (token) {
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = token.getAttribute('content');
+} else {
+    console.error('CSRF token not found');
+}
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

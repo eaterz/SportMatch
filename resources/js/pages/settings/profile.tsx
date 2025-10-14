@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Head, Form, Link } from '@inertiajs/react';
-import { User, Mail, Shield, Trash2, Save, AlertTriangle, Info, Lock } from 'lucide-react';
+import { Head, Form, Link, router } from '@inertiajs/react';
+import { User, Mail, Shield, Trash2, Save, AlertTriangle, Info, Lock, X } from 'lucide-react';
+import axios from 'axios';
 
 import Navbar from '@/components/navbar';
 import InputError from '@/components/input-error';
@@ -22,7 +23,43 @@ interface Props {
 
 export default function ProfileSettings({ user, mustVerifyEmail = false, status }: Props) {
     const [activeTab, setActiveTab] = useState('profile');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const isOAuthUser = user.oauth_provider !== null;
+
+    const handleDeleteAccount = () => {
+        if (!isOAuthUser && !deletePassword) {
+            setDeleteError('Lūdzu ievadi savu paroli');
+            return;
+        }
+
+        setIsDeleting(true);
+        setDeleteError('');
+
+        router.delete(route('profile.settings.destroy'), {
+            data: {
+                password: deletePassword,
+            },
+            preserveScroll: true,
+            onSuccess: () => {
+                router.visit('/');
+            },
+            onError: (errors) => {
+                if (errors.password) {
+                    setDeleteError(errors.password);
+                } else {
+                    setDeleteError('Kļūda dzēšot kontu');
+                }
+            },
+            onFinish: () => {
+                setIsDeleting(false);
+            },
+        });
+    };
+
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -349,7 +386,10 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                                                 Pirms konta dzēšanas, lūdzu, lejupielādē visus datus vai informāciju,
                                                 ko vēlies saglabāt.
                                             </p>
-                                            <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2">
+                                            <button
+                                                onClick={() => setShowDeleteModal(true)}
+                                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                                            >
                                                 <Trash2 className="w-4 h-4" />
                                                 <span>Dzēst kontu</span>
                                             </button>
@@ -361,6 +401,88 @@ export default function ProfileSettings({ user, mustVerifyEmail = false, status 
                     </div>
                 </div>
             </div>
+
+            {/* Delete Account Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg max-w-md w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-red-600 flex items-center">
+                                <AlertTriangle className="w-6 h-6 mr-2" />
+                                Dzēst kontu
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeletePassword('');
+                                    setDeleteError('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="mb-6">
+                            <p className="text-gray-700 mb-4">
+                                Vai esi pārliecināts, ka vēlies dzēst savu kontu? Šī darbība ir neatgriezeniska
+                                un visi tavi dati tiks neatgriezeniski dzēsti.
+                            </p>
+
+                            {!isOAuthUser && (
+                                <div>
+                                    <label htmlFor="delete_password" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Ievadi savu paroli, lai apstiprinātu
+                                    </label>
+                                    <input
+                                        id="delete_password"
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(e) => setDeletePassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+                                        placeholder="Tava parole"
+                                    />
+                                </div>
+                            )}
+
+                            {deleteError && (
+                                <p className="mt-2 text-sm text-red-600">{deleteError}</p>
+                            )}
+
+                            {isOAuthUser && (
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p className="text-sm text-blue-900 flex items-center">
+                                        <Info className="w-4 h-4 mr-2" />
+                                        Google kontam parole nav nepieciešama
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeletePassword('');
+                                    setDeleteError('');
+                                }}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Atcelt
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>{isDeleting ? 'Dzēš...' : 'Dzēst kontu'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
