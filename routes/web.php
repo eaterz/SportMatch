@@ -42,7 +42,7 @@ Route::middleware(['auth', 'signed'])->group(function () {
 // Email Verification Notice (for users who need to verify)
 Route::middleware('auth')->group(function () {
     Route::get('/email/verify', function () {
-        return Inertia::render('Auth/VerifyEmail');
+        return Inertia::render('auth/verify-email');
     })->name('verification.notice');
 
     Route::post('/email/verification-notification', function () {
