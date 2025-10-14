@@ -37,12 +37,15 @@ class GoogleAuthController extends Controller
                     $user->oauth_provider = 'google';
                     $user->oauth_id = $googleUser->id;
                     $user->save();
+                }
 
-                    // Log for debugging
-                    Log::info('Updated OAuth info for user', [
+                // ALWAYS verify email for OAuth users
+                if (!$user->hasVerifiedEmail()) {
+                    $user->markEmailAsVerified();
+
+                    Log::info('Email verified for OAuth user', [
                         'user_id' => $user->id,
-                        'oauth_provider' => $user->oauth_provider,
-                        'oauth_id' => $user->oauth_id
+                        'email' => $user->email
                     ]);
                 }
 
@@ -62,7 +65,7 @@ class GoogleAuthController extends Controller
                 return redirect()->route('dashboard');
             }
 
-            // Create new user
+            // Create new user with auto-verified email
             $nameParts = explode(' ', $googleUser->name);
             $firstName = $nameParts[0] ?? '';
             $lastName = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
@@ -72,16 +75,16 @@ class GoogleAuthController extends Controller
                 'lastname' => $lastName ?: $firstName,
                 'email' => $googleUser->email,
                 'password' => Hash::make(Str::random(24)),
-                'email_verified_at' => now(),
+                'email_verified_at' => now(), // Auto-verify email for Google users
                 'oauth_provider' => 'google',
                 'oauth_id' => $googleUser->id,
             ]);
 
-            // Log for debugging
             Log::info('Created new OAuth user', [
                 'user_id' => $user->id,
                 'oauth_provider' => $user->oauth_provider,
-                'oauth_id' => $user->oauth_id
+                'oauth_id' => $user->oauth_id,
+                'email_verified' => true
             ]);
 
             Auth::login($user);
@@ -91,7 +94,6 @@ class GoogleAuthController extends Controller
                 ->with('success', 'Konts izveidots! Tagad aizpildi savu profilu.');
 
         } catch (\Exception $e) {
-            // Log the actual error
             Log::error('Google OAuth error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

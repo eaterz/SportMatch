@@ -31,6 +31,25 @@ Route::controller(GoogleAuthController::class)
         Route::get('/callback', 'callback')->name('callback');
     });
 
+// Email Verification Routes (MUST be outside verified middleware!)
+Route::middleware(['auth', 'signed'])->group(function () {
+    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+        return redirect('/dashboard')->with('success', 'E-pasts apstiprināts!');
+    })->name('verification.verify');
+});
+
+// Email Verification Notice (for users who need to verify)
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', function () {
+        return Inertia::render('Auth/VerifyEmail');
+    })->name('verification.notice');
+
+    Route::post('/email/verification-notification', function () {
+        request()->user()->sendEmailVerificationNotification();
+        return back()->with('message', 'Verification link sent!');
+    })->name('verification.send');
+});
 
 // Profile Setup - Photo Routes (must come before step routes)
 Route::middleware('auth')
@@ -43,7 +62,7 @@ Route::middleware('auth')
         Route::post('/photo/{photo}/main', 'setMainSetupPhoto')->name('photo.main');
     });
 
-// Profile Setup - Step Routes
+// Profile Setup - Step Routes (NO verified middleware - users need to complete profile first!)
 Route::middleware('auth')
     ->prefix('profile/setup')
     ->name('profile.setup.')
@@ -65,18 +84,11 @@ Route::middleware('auth')
         Route::post('/step-5', 'storeStep5')->name('step5.store');
     });
 
-//Authenticated Routes
+//Authenticated Routes (with verified and profile complete checks)
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
     //Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-
-
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
-        return redirect('/dashboard')->with('success', 'E-pasts apstiprināts!');
-    })->middleware(['auth', 'signed'])->name('verification.verify');
 
     //Partner Search
     Route::controller(PartnerSearchController::class)
@@ -85,7 +97,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
         });
-
 
     //Friends
     Route::controller(FriendsController::class)
@@ -105,7 +116,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::post('/remove/{friend}', 'removeFriend')->name('remove');
         });
 
-
     //Chat
     Route::controller(ChatController::class)
         ->prefix('chat')
@@ -116,8 +126,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::post('/{friend}/read', 'markAsRead')->name('read');
             Route::get('/{friend}/messages', 'getMessages')->name('messages');
         });
-
-
 
     //Profile
     Route::controller(ProfileController::class)
@@ -137,8 +145,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             });
         });
 
-
-
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
@@ -147,7 +153,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/delete-all', [NotificationController::class, 'deleteAll'])->name('notifications.deleteAll');
-
 
     Route::controller(GroupsController::class)
         ->prefix('groups')
@@ -185,7 +190,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/{group}/events/{event}/edit', 'editEvent')->name('events.edit');
             Route::delete('/{group}/events/{event}', 'destroyEvent')->name('events.destroy');
 
-            // Event Feedback Routes (Fixed - removed redundant prefix)
+            // Event Feedback Routes
             Route::get('/{group}/events/{event}/feedback', [EventFeedbackController::class, 'index'])->name('events.feedback.index');
             Route::get('/{group}/events/{event}/feedback/create', [EventFeedbackController::class, 'create'])->name('events.feedback.create');
             Route::post('/{group}/events/{event}/feedback', [EventFeedbackController::class, 'store'])->name('events.feedback.store');
@@ -210,12 +215,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/pending', 'pending')->name('pending');
             Route::post('/cancel', 'cancel')->name('cancel');
         });
-
 });
-
-
-
-
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
