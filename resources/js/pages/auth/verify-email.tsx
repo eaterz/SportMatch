@@ -32,7 +32,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        className="bg-black text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                         Nosūtīt vēlreiz
                     </button>
