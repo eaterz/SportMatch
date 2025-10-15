@@ -157,6 +157,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
         }
     };
 
+
     const saveBio = async () => {
         setProcessingBio(true);
         try {
