@@ -117,9 +117,18 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
 
             // Reload the page to get updated photos
             router.reload({ only: ['photos', 'user'] });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error uploading photo:', error);
-            alert('Kļūda augšupielādējot foto');
+
+            if (error.response?.status === 413) {
+                // Laravel returns 413 if file is too large
+                setErrorMessage('Fails ir pārāk liels. Lūdzu, izvēlies mazāku foto (max 2MB).');
+            } else {
+                const errorMsg = error.response?.data?.message || 'Kļūda augšupielādējot foto';
+                setErrorMessage(errorMsg);
+            }
+
+            setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setProcessingPhoto(false);
         }

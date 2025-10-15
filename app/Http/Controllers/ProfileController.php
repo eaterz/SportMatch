@@ -56,7 +56,10 @@ class ProfileController extends Controller
     public function uploadPhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120' // 5MB max
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120'
+        ], [
+            'photo.max' => 'Fails ir pārāk liels. Maksimālais izmērs ir 5 MB.',
+            'photo.uploaded' => 'Fails ir pārāk liels. Lūdzu izvēlies mazāku foto (max 5 MB).'
         ]);
 
         $user = Auth::user();
@@ -66,20 +69,15 @@ class ProfileController extends Controller
         }
 
         try {
-
             $path = $request->file('photo')->store('profile-photos', 'public');
-
-
             $isMain = $request->boolean('is_main', false);
-
 
             if ($isMain || !$user->profile->photos()->exists()) {
                 $user->profile->photos()->update(['is_main' => false]);
                 $isMain = true;
             }
 
-
-            $photo = $user->profile->photos()->create([
+            $user->profile->photos()->create([
                 'photo_path' => $path,
                 'is_main' => $isMain
             ]);
@@ -89,6 +87,7 @@ class ProfileController extends Controller
             return back()->with('error', 'Kļūda augšupielādējot foto: ' . $e->getMessage());
         }
     }
+
 
     public function setMainPhoto(UserProfilePhoto $photo)
     {
