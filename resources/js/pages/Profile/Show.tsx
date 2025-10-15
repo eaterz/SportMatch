@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Search, Shield, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import Navbar from '@/components/navbar';
 
@@ -56,13 +57,16 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
     const [editingInfo, setEditingInfo] = useState(false);
     const [searchCity, setSearchCity] = useState('');
     const [showCityDropdown, setShowCityDropdown] = useState(false);
+    const [processingBio, setProcessingBio] = useState(false);
+    const [processingInfo, setProcessingInfo] = useState(false);
+    const [processingPhoto, setProcessingPhoto] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data: bioData, setData: setBioData, post: postBio, processing: processingBio } = useForm({
+    const [bioData, setBioData] = useState({
         bio: user.profile?.bio || ''
     });
 
-    const { data: infoData, setData: setInfoData, post: postInfo, processing: processingInfo } = useForm({
+    const [infoData, setInfoData] = useState({
         phone: user.profile?.phone || '',
         city_id: user.profile?.city_id || null,
         bio: user.profile?.bio || ''
@@ -76,51 +80,83 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
     const selectedCity = cities.find(c => c.id === infoData.city_id);
     const currentCity = user.profile?.city;
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         const formData = new FormData();
         formData.append('photo', file);
 
-        router.post('/profile/photo', formData, {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
+        setProcessingPhoto(true);
+        try {
+            await axios.post('/profile/photo', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
                 }
-                router.reload({ only: ['photos'] });
-            }
-        });
-    };
-
-    const setMainPhoto = (photoId: number) => {
-        router.post(`/profile/photo/${photoId}/main`, {}, {
-            preserveScroll: true
-        });
-    };
-
-    const deletePhoto = (photoId: number) => {
-        if (confirm('Vai tiešām vēlaties dzēst šo foto?')) {
-            router.delete(`/profile/photo/${photoId}`, {
-                preserveScroll: true
             });
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
+            // Reload the page to get updated photos
+            router.reload({ only: ['photos', 'user'] });
+        } catch (error) {
+            console.error('Error uploading photo:', error);
+            alert('Kļūda augšupielādējot foto');
+        } finally {
+            setProcessingPhoto(false);
         }
     };
 
-    const saveBio = () => {
-        postBio('/profile/bio', {
-            preserveScroll: true,
-            onSuccess: () => setEditingBio(false)
-        });
+    const setMainPhoto = async (photoId: number) => {
+        try {
+            await axios.post(`/profile/photo/${photoId}/main`);
+            router.reload({ only: ['photos', 'user'] });
+        } catch (error) {
+            console.error('Error setting main photo:', error);
+            alert('Kļūda iestatot galveno foto');
+        }
     };
 
-    const saveInfo = () => {
-        postInfo('/profile/update', {
-            preserveScroll: true,
-            onSuccess: () => setEditingInfo(false)
-        });
+    const deletePhoto = async (photoId: number) => {
+        if (!confirm('Vai tiešām vēlaties dzēst šo foto?')) return;
+
+        try {
+            await axios.delete(`/profile/photo/${photoId}`);
+            router.reload({ only: ['photos', 'user'] });
+        } catch (error) {
+            console.error('Error deleting photo:', error);
+            alert('Kļūda dzēšot foto');
+        }
+    };
+
+    const saveBio = async () => {
+        setProcessingBio(true);
+        try {
+            await axios.post('/profile/bio', bioData);
+            setEditingBio(false);
+            router.reload({ only: ['user'] });
+        } catch (error) {
+            console.error('Error saving bio:', error);
+            alert('Kļūda saglabājot biogrāfiju');
+        } finally {
+            setProcessingBio(false);
+        }
+    };
+
+    const saveInfo = async () => {
+        setProcessingInfo(true);
+        try {
+            await axios.post('/profile/update', infoData);
+            setEditingInfo(false);
+            router.reload({ only: ['user'] });
+        } catch (error) {
+            console.error('Error saving info:', error);
+            alert('Kļūda saglabājot informāciju');
+        } finally {
+            setProcessingInfo(false);
+        }
     };
 
     const getSkillLevelLabel = (level: string) => {
@@ -162,7 +198,8 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                 </div>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                                    disabled={processingPhoto}
+                                    className="absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Camera className="w-5 h-5" />
                                 </button>
@@ -172,6 +209,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                     accept="image/*"
                                     className="hidden"
                                     onChange={handlePhotoUpload}
+                                    disabled={processingPhoto}
                                 />
                             </div>
 
@@ -201,7 +239,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                                         setSearchCity(e.target.value);
                                                         setShowCityDropdown(true);
                                                         if (!e.target.value) {
-                                                            setInfoData('city_id', null);
+                                                            setInfoData(prev => ({ ...prev, city_id: null }));
                                                         }
                                                     }}
                                                     onFocus={() => setShowCityDropdown(true)}
@@ -223,7 +261,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                                                 <div
                                                                     key={city.id}
                                                                     onClick={() => {
-                                                                        setInfoData('city_id', city.id);
+                                                                        setInfoData(prev => ({ ...prev, city_id: city.id }));
                                                                         setSearchCity(city.name);
                                                                         setShowCityDropdown(false);
                                                                     }}
@@ -251,7 +289,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                                 disabled={processingInfo || !infoData.city_id}
                                                 className="flex-1 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                Saglabāt
+                                                {processingInfo ? 'Saglabā...' : 'Saglabāt'}
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -322,7 +360,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                 <div className="space-y-3">
                                     <textarea
                                         value={bioData.bio}
-                                        onChange={e => setBioData('bio', e.target.value)}
+                                        onChange={e => setBioData({ bio: e.target.value })}
                                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                                         rows={4}
                                         maxLength={500}
@@ -336,14 +374,14 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                             <button
                                                 onClick={saveBio}
                                                 disabled={processingBio}
-                                                className="px-4 py-2 bg-black text-white rounded-xl hover:shadow-lg transition-all text-sm"
+                                                className="px-4 py-2 bg-black text-white rounded-xl hover:shadow-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                Saglabāt
+                                                {processingBio ? 'Saglabā...' : 'Saglabāt'}
                                             </button>
                                             <button
                                                 onClick={() => {
                                                     setEditingBio(false);
-                                                    setBioData('bio', user.profile?.bio || '');
+                                                    setBioData({ bio: user.profile?.bio || '' });
                                                 }}
                                                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all text-sm"
                                             >
@@ -367,10 +405,11 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                 <h2 className="text-lg sm:text-xl font-bold text-gray-900">Foto galerija</h2>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl hover:shadow-lg transition-all w-full sm:w-auto text-sm"
+                                    disabled={processingPhoto}
+                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl hover:shadow-lg transition-all w-full sm:w-auto text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Upload className="w-4 h-4" />
-                                    <span>Pievienot</span>
+                                    <span>{processingPhoto ? 'Augšupielādē...' : 'Pievienot'}</span>
                                 </button>
                             </div>
 
