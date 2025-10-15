@@ -113,15 +113,22 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-
+        // Check if user owns this photo
         if ($photo->userProfile->user_id !== $user->id) {
             return back()->with('error', 'Nav atļauts');
         }
 
+        // Check if this is the last photo
+        $photoCount = $user->profile->photos()->count();
 
+        if ($photoCount <= 1) {
+            return back()->with('error', 'Nevar dzēst pēdējo foto. Jābūt vismaz vienai bildei profilā.');
+        }
+
+        // Delete from storage
         Storage::disk('public')->delete($photo->photo_path);
 
-
+        // If deleting main photo, set another photo as main
         if ($photo->is_main) {
             $nextPhoto = $user->profile->photos()
                 ->where('id', '!=', $photo->id)
@@ -132,7 +139,7 @@ class ProfileController extends Controller
             }
         }
 
-
+        // Delete photo record
         $photo->delete();
 
         return back()->with('success', 'Foto dzēsta');

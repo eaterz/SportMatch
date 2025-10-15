@@ -118,7 +118,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::prefix('photo')->name('photo.')->group(function () {
                 Route::post('/', 'uploadPhoto')->name('upload');
                 Route::post('/{photo}/main', 'setMainPhoto')->name('main');
-                Route::delete('/{photo}', 'deletePhoto')->name('delete');
+                Route::post('/{photo}', 'deletePhoto')->name('delete');
             });
         });
 

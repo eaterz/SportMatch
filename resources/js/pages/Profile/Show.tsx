@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { Head, router } from '@inertiajs/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Search, Shield, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Camera, Trash2, Star, Edit2, Upload, MapPin, Phone, Mail, User, Search, Shield, CheckCircle, Clock, AlertTriangle, X } from 'lucide-react';
 import Navbar from '@/components/navbar';
 
 interface City {
@@ -60,7 +60,23 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
     const [processingBio, setProcessingBio] = useState(false);
     const [processingInfo, setProcessingInfo] = useState(false);
     const [processingPhoto, setProcessingPhoto] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const { flash } = usePage().props as any;
+
+    // Show flash messages
+    useEffect(() => {
+        if (flash?.error) {
+            setErrorMessage(flash.error);
+            setTimeout(() => setErrorMessage(''), 5000);
+        }
+        if (flash?.success) {
+            setSuccessMessage(flash.success);
+            setTimeout(() => setSuccessMessage(''), 5000);
+        }
+    }, [flash]);
 
     const [bioData, setBioData] = useState({
         bio: user.profile?.bio || ''
@@ -120,14 +136,24 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
     };
 
     const deletePhoto = async (photoId: number) => {
+        // Check if this is the last photo
+        if (photos.length <= 1) {
+            setErrorMessage('Nevar dzēst pēdējo foto. Jābūt vismaz vienai bildei profilā.');
+            setTimeout(() => setErrorMessage(''), 5000);
+            return;
+        }
+
         if (!confirm('Vai tiešām vēlaties dzēst šo foto?')) return;
 
         try {
-            await axios.delete(`/profile/photo/${photoId}`);
+            await axios.post(`/profile/photo/${photoId}`);
+            setSuccessMessage('Foto veiksmīgi dzēsta');
+            setTimeout(() => setSuccessMessage(''), 5000);
             router.reload({ only: ['photos', 'user'] });
-        } catch (error) {
-            console.error('Error deleting photo:', error);
-            alert('Kļūda dzēšot foto');
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || 'Kļūda dzēšot foto';
+            setErrorMessage(errorMsg);
+            setTimeout(() => setErrorMessage(''), 5000);
         }
     };
 
@@ -172,6 +198,46 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
             <Head title="Mans profils - SportMatch" />
             <Navbar user={user} />
+
+            {/* Error Message */}
+            {errorMessage && (
+                <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-red-800">{errorMessage}</p>
+                            </div>
+                            <button
+                                onClick={() => setErrorMessage('')}
+                                className="text-red-500 hover:text-red-700 ml-4"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+                <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
+                    <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-green-800">{successMessage}</p>
+                            </div>
+                            <button
+                                onClick={() => setSuccessMessage('')}
+                                className="text-green-500 hover:text-green-700 ml-4"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Profile Header Card */}
@@ -434,8 +500,13 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                                 )}
                                                 <button
                                                     onClick={() => deletePhoto(photo.id)}
-                                                    className="p-2 bg-white/90 backdrop-blur rounded-lg hover:bg-white transition-all"
-                                                    title="Dzēst"
+                                                    disabled={photos.length <= 1}
+                                                    className={`p-2 bg-white/90 backdrop-blur rounded-lg transition-all ${
+                                                        photos.length <= 1
+                                                            ? 'opacity-50 cursor-not-allowed'
+                                                            : 'hover:bg-white'
+                                                    }`}
+                                                    title={photos.length <= 1 ? 'Nevar dzēst pēdējo foto' : 'Dzēst'}
                                                 >
                                                     <Trash2 className="w-4 h-4 text-red-600" />
                                                 </button>
@@ -443,6 +514,11 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                             {photo.is_main && (
                                                 <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
                                                     Galvenā
+                                                </div>
+                                            )}
+                                            {photos.length <= 1 && (
+                                                <div className="absolute bottom-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-medium shadow-lg">
+                                                    Pēdējā foto
                                                 </div>
                                             )}
                                         </div>
