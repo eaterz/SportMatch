@@ -179,16 +179,20 @@ it('can filter partners by tennis sport', function () {
 });
 
 it('can filter partners by basketball sport', function () {
+    // Pieslēdzamies kā konkrētais lietotājs, lai varētu piekļūt partneru meklēšanas lapai
     $this->actingAs($this->user);
 
+    // Atveram partneru meklēšanas lapu
     $page = visit('/partners');
 
+    // Atveram filtru izvēlni, izvēlamies sporta veidu "Basketbols",
+    // piemērojām filtrus un pārbaudām, vai rezultātos parādās tikai basketbola partneri
     $page->click('Filtri')
-        ->select('@sport-select', (string) $this->basketball->id)
-        ->click('Pielietot filtrus')
-        ->assertSee('Basketball')
-        ->assertSee('Multi')
-        ->assertDontSee('Tennis');
+        ->select('@sport-select', (string) $this->basketball->id) // izvēlas "Basketbols" no filtra
+        ->click('Pielietot filtrus') // piemēro izvēlēto filtru
+        ->assertSee('Basketball') // pārbauda, ka redzams basketbola partneris
+        ->assertSee('Multi') // pārbauda, ka redzams vēl kāds saistīts partneris vai profils
+        ->assertDontSee('Tennis'); // pārliecinās, ka tenisa partneri netiek rādīti
 });
 
 it('shows no results when filtering by football sport', function () {

@@ -339,6 +339,7 @@ export default function Chat({
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
+                            data-testid="search-friends-input"  // ADD THIS
                             placeholder="Meklēt draugus..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -353,6 +354,7 @@ export default function Chat({
                         filteredFriends.map(friend => (
                             <div
                                 key={friend.id}
+                                data-testid={`friend-item-${friend.id}`}  // ADD THIS
                                 onClick={() => selectFriend(friend)}
                                 className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
                                     currentFriendId === friend.id ? 'bg-gray-100' : ''
@@ -382,7 +384,10 @@ export default function Chat({
                                             {friend.name} {friend.lastname || ''}
                                         </p>
                                         {friend.unread_count > 0 && (
-                                            <span className="bg-black text-white text-xs rounded-full px-2 py-1 ml-2">
+                                            <span
+                                                data-testid="unread-badge"  // ADD THIS
+                                                className="bg-black text-white text-xs rounded-full px-2 py-1 ml-2"
+                                            >
                                                 {friend.unread_count}
                                             </span>
                                         )}
@@ -484,6 +489,7 @@ export default function Chat({
                         <div className="flex space-x-2">
                             <input
                                 type="text"
+                                data-testid="message-input"  // ADD THIS
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
@@ -493,6 +499,7 @@ export default function Chat({
                             />
                             <button
                                 onClick={sendMessage}
+                                data-testid="send-message-button"  // ADD THIS
                                 disabled={sending || !newMessage.trim()}
                                 className="bg-black text-white p-2 sm:p-2.5 rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             >

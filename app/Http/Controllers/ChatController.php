@@ -137,6 +137,14 @@ class ChatController extends Controller
     public function sendMessage(Request $request, User $friend)
     {
         try {
+            // ADD THIS CHECK: Verify users are friends
+            if (!auth()->user()->isFriendWith($friend)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You can only send messages to friends.'
+                ], 403);
+            }
+
             $request->validate([
                 'message' => 'required|string|max:1000'
             ]);
@@ -154,7 +162,6 @@ class ChatController extends Controller
             ));
 
             NotificationService::newMessage(auth()->user(), $friend, $request->message);
-
 
             return response()->json([
                 'success' => true,

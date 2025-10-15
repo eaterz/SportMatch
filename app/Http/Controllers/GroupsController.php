@@ -46,7 +46,6 @@ class GroupsController extends Controller
 
         // Visas publiskās grupas
         $query = Group::where('is_active', true)
-            ->where('is_private', false)
             ->with(['creator', 'sports', 'city'])
             ->withCount('approvedMembers');
 
@@ -285,6 +284,13 @@ class GroupsController extends Controller
     public function join(Group $group)
     {
         $user = Auth::user();
+
+
+        if (method_exists($user, 'profileSetupStep') && $user->profileSetupStep < 3) {
+
+            $user->profileSetupStep = 3;
+            $user->save();
+        }
 
         if ($group->isMember($user)) {
             return back()->with('error', 'Jūs jau esat šīs grupas dalībnieks');

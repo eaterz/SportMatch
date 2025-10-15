@@ -260,12 +260,14 @@ export default function GroupsIndex({ user, myGroups = [], publicGroups, sports 
                     {group.has_pending_request ? (
                         <button
                             disabled
+                            data-testid="pending-approval"
                             className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed font-semibold"
                         >
                             Gaida apstiprinājumu
                         </button>
                     ) : (
                         <button
+
                             onClick={() => joinGroup(group.id)}
                             className="flex-1 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
                         >

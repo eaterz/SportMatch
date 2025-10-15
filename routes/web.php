@@ -31,25 +31,7 @@ Route::controller(GoogleAuthController::class)
         Route::get('/callback', 'callback')->name('callback');
     });
 
-// Email Verification Routes (MUST be outside verified middleware!)
-Route::middleware(['auth', 'signed'])->group(function () {
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
-        return redirect('/dashboard')->with('success', 'E-pasts apstiprināts!');
-    })->name('verification.verify');
-});
 
-// Email Verification Notice (for users who need to verify)
-Route::middleware('auth')->group(function () {
-    Route::get('/email/verify', function () {
-        return Inertia::render('auth/verify-email');
-    })->name('verification.notice');
-
-    Route::post('/email/verification-notification', function () {
-        request()->user()->sendEmailVerificationNotification();
-        return back()->with('message', 'Verification link sent!');
-    })->name('verification.send');
-});
 
 // Profile Setup - Photo Routes (must come before step routes)
 Route::middleware('auth')
