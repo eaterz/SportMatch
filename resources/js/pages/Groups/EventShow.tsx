@@ -4,6 +4,7 @@ import {
     ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign,
     Edit, Trash2, UserPlus, UserMinus, User, Star
 } from 'lucide-react';
+import axios from 'axios';
 import { AddToCalendarButton } from '@/components/AddToCalendarButton';
 
 interface User {
@@ -108,11 +109,20 @@ export default function EventShow({ user, group, event, participants }: Props) {
         }
     };
 
-    const deleteEvent = () => {
-        router.delete(`/groups/${group.id}/events/${event.id}`, {
-            onSuccess: () => {
-            }
-        });
+    const deleteEvent = async () => {
+        if (!confirm('Vai tiešām vēlaties dzēst šo pasākumu?')) return;
+
+        try {
+            await axios.post(`/groups/${group.id}/events/${event.id}`);
+
+            router.visit(`/groups/${group.id}/events`, { preserveScroll: true });
+
+        } catch (error: any) {
+            console.error('Kļūda dzēšot pasākumu:', error);
+            alert(error.response?.data?.message || 'Kļūda dzēšot pasākumu');
+        } finally {
+            setShowDeleteConfirm(false);
+        }
     };
 
 

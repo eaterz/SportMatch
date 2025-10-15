@@ -165,7 +165,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::post('/{group}/events/{event}/leave', 'leaveEvent')->name('events.leave');
             Route::put('/{group}/events/{event}', 'updateEvent')->name('events.update');
             Route::get('/{group}/events/{event}/edit', 'editEvent')->name('events.edit');
-            Route::delete('/{group}/events/{event}', 'destroyEvent')->name('events.destroy');
+            Route::post('/{group}/events/{event}', 'destroyEvent')->name('events.destroy');
 
             // Event Feedback Routes
             Route::get('/{group}/events/{event}/feedback', [EventFeedbackController::class, 'index'])->name('events.feedback.index');
