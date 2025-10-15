@@ -11,11 +11,8 @@ use App\Http\Controllers\PhotoVerificationController;
 use App\Http\Controllers\ProfileSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PartnerSearchController;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-
 
 //Welcome
 Route::get('/', function () {
@@ -30,8 +27,6 @@ Route::controller(GoogleAuthController::class)
         Route::get('/redirect', 'redirect')->name('redirect');
         Route::get('/callback', 'callback')->name('callback');
     });
-
-
 
 // Profile Setup - Photo Routes (must come before step routes)
 Route::middleware('auth')

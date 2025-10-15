@@ -16,7 +16,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/verification/send', [ProfileController::class, 'sendVerification'])
         ->middleware(['auth', 'throttle:6,1'])
-        ->name('verification.send');
+        ->name('settings.verification.send');
 
     Route::put('settings/password', [PasswordController::class, 'update'])
         ->middleware('throttle:6,1')
