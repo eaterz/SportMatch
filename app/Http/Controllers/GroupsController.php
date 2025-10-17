@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Events\GroupDeleted;
+use App\Events\GroupEventDeleted;
 use App\Events\GroupCommentAdded;
 use App\Events\GroupPostCreated;
 use App\Events\GroupPostDeleted;
@@ -275,7 +276,8 @@ class GroupsController extends Controller
             'upcomingEvents' => $upcomingEvents,
             'pusherKey' => config('broadcasting.connections.pusher.key'),
             'pusherCluster' => config('broadcasting.connections.pusher.options.cluster'),
-            'cities' => $cities
+            'cities' => $cities,
+
         ]);
     }
 
@@ -816,7 +818,33 @@ class GroupsController extends Controller
             return back()->with('error', 'Pasākums nav no šīs grupas');
         }
 
+        // Get all participant IDs BEFORE deletion
+        $participantIds = $event->confirmedParticipants()->pluck('user_id')->toArray();
+        $eventTitle = $event->title;
+        $eventId = $event->id;
+
+        // Delete the event
         $event->delete();
+
+        // Broadcast to all participants
+        broadcast(new GroupEventDeleted($eventId, $eventTitle, $group->id, $participantIds))->toOthers();
+
+        // Send notifications to participants
+        foreach ($participantIds as $participantId) {
+            if ($participantId !== $user->id) {
+                \App\Models\Notification::create([
+                    'user_id' => $participantId,
+                    'type' => 'event_deleted',
+                    'data' => [
+                        'event_id' => $eventId,
+                        'event_title' => $eventTitle,
+                        'group_id' => $group->id,
+                        'group_name' => $group->name,
+                        'deleted_by' => $user->name . ' ' . $user->lastname
+                    ]
+                ]);
+            }
+        }
 
         return redirect()->route('groups.events', $group)
             ->with('success', 'Pasākums dzēsts');
@@ -910,18 +938,45 @@ class GroupsController extends Controller
             return back()->with('error', 'Tikai grupas izveidotājs var dzēst grupu');
         }
 
+        // Get all member IDs BEFORE deletion
+        $memberIds = $group->approvedMembers()->pluck('user_id')->toArray();
+        $groupName = $group->name;
+        $groupId = $group->id;
+
+        // Delete cover photo
         if ($group->cover_photo) {
             Storage::disk('public')->delete($group->cover_photo);
         }
 
+        // Delete all post images
         $posts = $group->posts()->whereNotNull('image')->get();
         foreach ($posts as $post) {
             Storage::disk('public')->delete($post->image);
         }
 
+        // Delete the group
         $group->delete();
+
+        // Broadcast to all members
+        broadcast(new GroupDeleted($groupId, $groupName, $memberIds))->toOthers();
+
+        // Send notifications to members
+        foreach ($memberIds as $memberId) {
+            if ($memberId !== $user->id) {
+                \App\Models\Notification::create([
+                    'user_id' => $memberId,
+                    'type' => 'group_deleted',
+                    'data' => [
+                        'group_id' => $groupId,
+                        'group_name' => $groupName,
+                        'deleted_by' => $user->name . ' ' . $user->lastname
+                    ]
+                ]);
+            }
+        }
 
         return redirect()->route('groups.index')
             ->with('success', 'Grupa dzēsta');
     }
+
 }

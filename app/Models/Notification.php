@@ -72,6 +72,12 @@ class Notification extends Model
                 $message = "{$data['user_name']} atstāja vērtējumu par pasākumu '{$data['event_title']}'";
                 return $message;
 
+            case 'group_deleted':
+                return "Grupa '{$data['group_name']}' tika dzēsta";
+
+            case 'event_deleted':
+                return "Pasākums '{$data['event_title']}' grupā {$data['group_name']} tika dzēsts";
+
             case 'verification_approved':
                 return "Tavs verifikācijas pieprasījums tika apstiprināts";
 
@@ -106,6 +112,10 @@ class Notification extends Model
 
             case 'event_feedback_received':
                 return 'star';
+
+            case 'group_deleted':
+            case 'event_deleted':
+                return 'trash-2';
 
             case 'verification_approved':
             case 'verification_rejected':
@@ -146,6 +156,13 @@ class Notification extends Model
 
             case 'group_invitation':
                 return isset($data['group_id']) ? "/groups/{$data['group_id']}" : null;
+
+            case 'group_deleted':
+                return '/groups';
+
+            case 'event_deleted':
+                return isset($data['group_id']) ? "/groups/{$data['group_id']}" : '/groups';
+
 
             case 'event_feedback_received':
                 return (isset($data['group_id'], $data['event_id']))

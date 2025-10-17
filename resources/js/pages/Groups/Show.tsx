@@ -132,6 +132,7 @@ export default function GroupsShow({
         post_id: null as number | null,
     });
 
+    //posts
     useEffect(() => {
         if (!pusherKey) return;
 
@@ -185,6 +186,56 @@ export default function GroupsShow({
         };
     }, [group.id, pusherKey, pusherCluster]);
 
+    //group deleted to kick member
+    useEffect(() => {
+        if (!pusherKey) return;
+
+        const initializeGroupDeletionListener = async () => {
+            try {
+                await echoService.initialize(pusherKey, pusherCluster);
+
+                const echo = echoService.getEcho();
+                if (!echo) {
+                    console.warn('Echo not initialized');
+                    return;
+                }
+
+                const channelName = `notifications.${user.id}`;
+
+                // Use Laravel Echo's .listen() method with dot prefix
+                echo.channel(channelName)
+                    .listen('.group.deleted', (data: any) => {
+                        console.log('🚨 Group deleted event received:', data);
+
+                        // Check if the deleted group is the one we're viewing
+                        if (data.group_id === group.id) {
+                            // Show alert and redirect immediately
+                            alert(`Grupa "${data.group_name}" tika dzēsta`);
+                            router.visit('/groups');
+                        }
+                    });
+
+                console.log('✅ Group deletion listener active for channel:', channelName);
+            } catch (error) {
+                console.error('❌ Failed to initialize group deletion listener:', error);
+            }
+        };
+
+        initializeGroupDeletionListener();
+
+        return () => {
+            try {
+                const echo = echoService.getEcho();
+                if (echo) {
+                    // Leave the channel to clean up
+                    echo.leave(`notifications.${user.id}`);
+                    console.log('🧹 Cleaned up group deletion listener');
+                }
+            } catch (error) {
+                console.error('Error cleaning up group deletion listener:', error);
+            }
+        };
+    }, [group.id, user.id, pusherKey, pusherCluster]);
     const handleJoinGroup = () => {
         router.post(`/groups/${group.id}/join`, {}, {
             preserveScroll: true,

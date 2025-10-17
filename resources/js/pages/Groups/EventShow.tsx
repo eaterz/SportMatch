@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { AddToCalendarButton } from '@/components/AddToCalendarButton';
+import echoService from '@/services/echo.js';
 
 interface User {
     id: number;
@@ -53,9 +54,11 @@ interface Props {
     group: Group;
     event: Event;
     participants: User[];
+    pusherKey?: string;
+    pusherCluster?: string;
 }
 
-export default function EventShow({ user, group, event, participants }: Props) {
+export default function EventShow({ user, group, event, participants, pusherKey, pusherCluster  }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const formatDate = (dateStr: string) => {
@@ -67,6 +70,59 @@ export default function EventShow({ user, group, event, participants }: Props) {
             year: 'numeric',
         });
     };
+
+    // Fixed useEffect for event deletion listener
+    useEffect(() => {
+        if (!pusherKey || !pusherCluster) return;
+
+        const initializeEventDeletionListener = async () => {
+            try {
+                await echoService.initialize(pusherKey, pusherCluster);
+
+                const echo = echoService.getEcho();
+                if (!echo) {
+                    console.warn('Echo not initialized');
+                    return;
+                }
+
+                const channelName = `notifications.${user.id}`;
+
+                // Use Laravel Echo's .listen() method with dot prefix (like in the working group example)
+                echo.channel(channelName)
+                    .listen('.event.deleted', (data: any) => {
+                        console.log('🚨 Event deleted event received:', data);
+
+                        // Check if the deleted event is the one we're viewing
+                        if (data.event_id === event.id) {
+                            // Show alert and redirect immediately
+                            alert(`Pasākums "${data.event_title}" tika dzēsts`);
+                            router.visit(`/groups/${group.id}/events`);
+                        }
+                    });
+
+                console.log('✅ Event deletion listener active for channel:', channelName);
+            } catch (error) {
+                console.error('❌ Failed to initialize event deletion listener:', error);
+            }
+        };
+
+        initializeEventDeletionListener();
+
+        return () => {
+            try {
+                const echo = echoService.getEcho();
+                if (echo) {
+                    // Leave the channel to clean up (like in the working group example)
+                    echo.leave(`notifications.${user.id}`);
+                    console.log('🧹 Cleaned up event deletion listener');
+                }
+            } catch (error) {
+                console.error('Error cleaning up event deletion listener:', error);
+            }
+        };
+    }, [event.id, user.id, group.id, pusherKey, pusherCluster]);
+
+
 
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
