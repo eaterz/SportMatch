@@ -152,7 +152,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
             // Posts
             Route::post('/{group}/posts', 'createPost')->name('posts.create');
-            Route::delete('/{group}/posts/{post}', 'deletePost')->name('posts.delete');
+            Route::post('/{group}/posts/{post}', 'deletePost')->name('posts.delete');
             Route::post('/{group}/posts/{post}/like', 'togglePostLike')->name('posts.like');
             Route::post('/{group}/posts/{post}/comment', 'addComment')->name('posts.comment');
 

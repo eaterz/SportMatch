@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Log;
 
 class VerifyEmailController extends Controller
 {
@@ -14,16 +13,12 @@ class VerifyEmailController extends Controller
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
-
-
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('dashboard')->with('info', 'E-pasts jau ir apstiprināts!');
+            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
         }
 
         $request->fulfill();
 
-        Log::info('Email verified successfully for user: ' . $request->user()->id);
-
-        return redirect()->route('dashboard')->with('success', 'E-pasts veiksmīgi apstiprināts!');
+        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
     }
 }
