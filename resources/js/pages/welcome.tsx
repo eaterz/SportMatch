@@ -64,7 +64,7 @@ export default function Welcome() {
             sport: "Teniss"
         },
         {
-            src: "https://authentic.co/wp-content/uploads/authentic-ab-6302-preview.jpg",
+            src: "https://res.cloudinary.com/simpleview/image/upload/v1481922813/clients/surfcityusa-redesign/Volleyball_1_0df826c7-1cc7-4334-be80-078425e9069c.jpg",
             alt: "Volejbols",
             sport: "Volejbols"
         }
@@ -371,7 +371,7 @@ export default function Welcome() {
                             { name: "Futbols", image: "https://media.istockphoto.com/id/636267430/photo/teenage-friends-playing-football.jpg?s=612x612&w=0&k=20&c=_tgHfR2aD-Q2OXG0zchCunHNEvZDPT9UdxMkhNiWHTM=" },
                             { name: "Basketbols", image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300&h=200&fit=crop" },
                             { name: "Teniss", image: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=300&h=200&fit=crop" },
-                            { name: "Volejbols", image: "https://authentic.co/wp-content/uploads/authentic-ab-6302-preview.jpg" },
+                            { name: "Volejbols", image: "https://res.cloudinary.com/simpleview/image/upload/v1481922813/clients/surfcityusa-redesign/Volleyball_1_0df826c7-1cc7-4334-be80-078425e9069c.jpg" },
                             { name: "Skrējiens", image: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=300&h=200&fit=crop" },
                             { name: "Peldēšana", image: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=300&h=200&fit=crop" }
                         ].map((sport, index) => (

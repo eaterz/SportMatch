@@ -25,7 +25,7 @@ class ProfileStep1Request extends FormRequest
                 "after_or_equal:{$minDate}",
                 "before_or_equal:{$maxDate}",
             ],
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|max:8',
             'gender' => ['required', Rule::in(['male', 'female'])],
             'city_id' => 'required|exists:cities,id',
         ];

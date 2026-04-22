@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Trophy, Camera, ChevronRight, ChevronLeft, Upload, Trash2, Star, Check, X } from 'lucide-react';
 import axios from 'axios';
+
 interface Photo {
     id: number;
     photo_url: string;
@@ -23,14 +24,14 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file
-        if (!file.type.startsWith('image/')) {
-            setUploadError('Lūdzu izvēlies attēlu!');
+        // Frontend validācija pirms sūtīšanas
+        if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+            setUploadError('Atļautie formāti: JPG, JPEG, PNG');
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            setUploadError('Attēls ir pārāk liels! Maksimālais izmērs: 5MB');
+            setUploadError(`Fails ir pārāk liels (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimālais izmērs: 3 MB`);
             return;
         }
 
@@ -47,9 +48,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
 
         try {
             await axios.post(route('profile.setup.photo.upload'), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (fileInputRef.current) {
@@ -57,10 +56,25 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
             }
 
             router.reload({ only: ['photos'] });
-            setIsUploading(false);
 
-        } catch (error) {
-            setUploadError('Kļūda augšupielādējot foto');
+        } catch (error: any) {
+            if (error.response?.status === 422) {
+                // Laravel validācijas kļūdas
+                const errors = error.response.data.errors;
+                if (errors?.photo) {
+                    setUploadError(errors.photo[0]);
+                } else {
+                    setUploadError('Foto neatbilst prasībām.');
+                }
+            } else if (error.response?.status === 400) {
+                // Pielāgotas kļūdas no kontroliera (piem. max 3 foto)
+                setUploadError(error.response.data.error || 'Nevar augšupielādēt foto.');
+            } else if (error.response?.status === 413) {
+                setUploadError('Fails ir pārāk liels serverim. Maksimālais izmērs: 5 MB');
+            } else {
+                setUploadError('Kļūda augšupielādējot foto. Lūdzu mēģini vēlreiz.');
+            }
+        } finally {
             setIsUploading(false);
         }
     };
@@ -70,7 +84,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
             await axios.post(route('profile.setup.photo.main', photoId));
             router.reload({ only: ['photos'] });
         } catch (error) {
-            setUploadError('Kļūda iestatot galveno foto');
+            setUploadError('Kļūda iestatot galveno foto.');
         }
     };
 
@@ -81,7 +95,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
             await axios.delete(route('profile.setup.photo.delete', photoId));
             router.reload({ only: ['photos'] });
         } catch (error) {
-            setUploadError('Kļūda dzēšot foto');
+            setUploadError('Kļūda dzēšot foto.');
         }
     };
 
@@ -123,9 +137,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                     </div>
                 </div>
 
-                {/* Card */}
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                    {/* Header */}
                     <div className="text-center mb-6">
                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Camera className="w-6 h-6 text-gray-600" />
@@ -145,15 +157,11 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                                             alt="Profile"
                                             className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
                                         />
-
-                                        {/* Main badge */}
                                         {photo.is_main && (
                                             <div className="absolute top-1 left-1 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
                                                 Galvenā
                                             </div>
                                         )}
-
-                                        {/* Hover actions */}
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-lg flex items-center justify-center gap-2">
                                             {!photo.is_main && (
                                                 <button
@@ -175,7 +183,6 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                                     </div>
                                 ))}
 
-                                {/* Add more button if less than 3 */}
                                 {photos.length < 3 && (
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
@@ -189,7 +196,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                             </div>
                         )}
 
-                        {/* Initial upload area (when no photos) */}
+                        {/* Sākuma upload zona */}
                         {photos.length === 0 && (
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -209,20 +216,31 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                             </div>
                         )}
 
-                        {/* Upload error */}
+                        {/* Kļūdas ziņojums */}
                         {uploadError && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
                                 <X className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-sm text-red-800">{uploadError}</p>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-red-800">Nevar augšupielādēt foto</p>
+                                    <p className="text-sm text-red-700 mt-0.5">{uploadError}</p>
                                 </div>
+                                <button
+                                    onClick={() => setUploadError('')}
+                                    className="text-red-400 hover:text-red-600"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
                             </div>
                         )}
 
-                        {/* Info */}
+                        {/* Prasības */}
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                             <h4 className="text-sm font-medium text-blue-900 mb-2">💡 Padomi labām fotogrāfijām:</h4>
                             <ul className="text-xs text-blue-800 space-y-1">
+                                <li className="flex items-start gap-2">
+                                    <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <span>Formāts: JPG vai PNG, maksimums 3 MB</span>
+                                </li>
                                 <li className="flex items-start gap-2">
                                     <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
                                     <span>Skaidra seja un labi apgaismojums</span>
@@ -231,25 +249,18 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                                     <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
                                     <span>Sportisks apģērbs vai aktivitāšu foto</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <span>Izvairīties no grupas foto</span>
-                                </li>
                             </ul>
                         </div>
 
-                        {/* Photo counter */}
+                        {/* Foto skaitītājs */}
                         <div className="text-center">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                photos.length > 0
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-600'
+                                photos.length > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                             }`}>
                                 {photos.length} / 3 fotogrāfijas
                             </span>
                         </div>
 
-                        {/* Hidden file input */}
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -258,7 +269,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                             onChange={handleFileSelect}
                         />
 
-                        {/* Navigation */}
+                        {/* Navigācija */}
                         <div className="flex gap-3 pt-2">
                             <a
                                 href={route('profile.setup.step3')}
@@ -279,11 +290,8 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="mt-6 text-center">
-                    <p className="text-xs text-gray-500">
-                        © 2025 SportMatch
-                    </p>
+                    <p className="text-xs text-gray-500">© 2025 SportMatch</p>
                 </div>
             </div>
         </div>

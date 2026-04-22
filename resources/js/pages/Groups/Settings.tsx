@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, Settings, Users, MessageSquare, Calendar,
-    Trash2, Upload, X, Lock, Globe, Plus, Search, MapPin
+    Trash2, Upload, X, Lock, Globe, Plus, Search, MapPin, LoaderCircle
 } from 'lucide-react';
+import { useFormWithErrors } from '@/hooks/useFormWithErrors';
 
 interface User {
     id: number;
@@ -58,22 +59,18 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [searchCity, setSearchCity] = useState('');
     const [showCityDropdown, setShowCityDropdown] = useState(false);
-    const [selectedSports, setSelectedSports] = useState(
-        group.sports.map(sport => ({
-            id: sport.id,
-            skill_level: sport.pivot?.skill_level || 'all'
-        }))
-    );
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setField, errors, processing, post } = useFormWithErrors({
         name: group.name || '',
         description: group.description || '',
         city_id: group.city_id || null as number | null,
         max_members: group.max_members?.toString() || '',
         is_private: group.is_private || false,
-        sports: selectedSports,
+        sports: group.sports.map(sport => ({
+            id: sport.id,
+            skill_level: sport.pivot?.skill_level || 'all',
+        })),
         cover_photo: null as File | null,
-        _method: 'PUT'
     });
 
     const filteredCities = cities.filter(city =>
@@ -86,39 +83,46 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('groups.update', group.id), {
-            forceFormData: true,
+            transformData: (d) => {
+                const formData = new FormData();
+                formData.append('_method', 'PUT');
+                formData.append('name', d.name);
+                formData.append('description', d.description);
+                if (d.city_id) formData.append('city_id', d.city_id.toString());
+                formData.append('max_members', d.max_members);
+                formData.append('is_private', d.is_private ? '1' : '0');
+                d.sports.forEach((sport: { id: number; skill_level: string }, index: number) => {
+                    formData.append(`sports[${index}][id]`, sport.id.toString());
+                    formData.append(`sports[${index}][skill_level]`, sport.skill_level);
+                });
+                if (d.cover_photo) formData.append('cover_photo', d.cover_photo);
+                return formData as any;
+            },
         });
     };
 
     const handleSportAdd = (sportId: number) => {
-        const newSport = { id: sportId, skill_level: 'all' };
-        const updatedSports = [...selectedSports, newSport];
-        setSelectedSports(updatedSports);
-        setData('sports', updatedSports);
+        setField('sports', [...data.sports, { id: sportId, skill_level: 'all' }]);
     };
 
     const handleSportRemove = (sportId: number) => {
-        const updatedSports = selectedSports.filter(s => s.id !== sportId);
-        setSelectedSports(updatedSports);
-        setData('sports', updatedSports);
+        setField('sports', data.sports.filter((s: { id: number }) => s.id !== sportId));
     };
 
     const handleSkillLevelChange = (sportId: number, skillLevel: string) => {
-        const updatedSports = selectedSports.map(s =>
+        setField('sports', data.sports.map((s: { id: number; skill_level: string }) =>
             s.id === sportId ? { ...s, skill_level: skillLevel } : s
-        );
-        setSelectedSports(updatedSports);
-        setData('sports', updatedSports);
+        ));
     };
 
     const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setData('cover_photo', e.target.files[0]);
+            setField('cover_photo', e.target.files[0]);
         }
     };
 
     const availableSports = sports.filter(
-        sport => !selectedSports.some(s => s.id === sport.id)
+        sport => !data.sports.some((s: { id: number }) => s.id === sport.id)
     );
 
     const isCreator = group.creator.id === user.id;
@@ -148,159 +152,134 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Settings */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Basic Information */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                             <h2 className="text-lg font-semibold text-gray-900 mb-6">Pamata informācija</h2>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                                 {/* Group Name */}
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                                <div className="grid gap-1">
+                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                         Grupas nosaukums *
                                     </label>
                                     <input
-                                        type="text"
                                         id="name"
+                                        type="text"
                                         value={data.name}
-                                        onChange={e => setData('name', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                        onChange={e => setField('name', e.target.value)}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:border-gray-400 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                                         required
+                                        maxLength={50}
                                     />
-                                    {errors.name && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                                    )}
+                                    {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
                                 </div>
 
                                 {/* Description */}
-                                <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                                <div className="grid gap-1">
+                                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                                         Apraksts
                                     </label>
                                     <textarea
                                         id="description"
                                         value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
+                                        onChange={e => setField('description', e.target.value)}
                                         rows={4}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
+                                        maxLength={500}
                                         placeholder="Apraksti savu grupu..."
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:border-gray-400 resize-none ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
                                     />
-                                    {errors.description && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-                                    )}
+                                    {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
                                 </div>
 
                                 {/* City */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <div className="grid gap-1">
+                                    <label className="block text-sm font-medium text-gray-700">
                                         <MapPin className="inline w-4 h-4 mr-1" />
                                         Pilsēta *
                                     </label>
                                     <div className="relative">
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="text"
-                                                value={selectedCity ? selectedCity.name : searchCity}
-                                                onChange={(e) => {
-                                                    setSearchCity(e.target.value);
-                                                    setShowCityDropdown(true);
-                                                    if (!e.target.value) {
-                                                        setData('city_id', null);
-                                                    }
-                                                }}
-                                                onFocus={() => setShowCityDropdown(true)}
-                                                placeholder="Meklēt pilsētu..."
-                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
-                                            />
-                                        </div>
-
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={selectedCity ? selectedCity.name : searchCity}
+                                            onChange={(e) => {
+                                                setSearchCity(e.target.value);
+                                                setShowCityDropdown(true);
+                                                if (!e.target.value) setField('city_id', null);
+                                            }}
+                                            onFocus={() => setShowCityDropdown(true)}
+                                            placeholder="Meklēt pilsētu..."
+                                            className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:border-gray-400 ${errors.city_id ? 'border-red-500' : 'border-gray-300'}`}
+                                        />
                                         {showCityDropdown && (
                                             <>
-                                                <div
-                                                    className="fixed inset-0 z-10"
-                                                    onClick={() => setShowCityDropdown(false)}
-                                                />
-                                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                                    {filteredCities.length > 0 ? (
-                                                        filteredCities.map(city => (
-                                                            <div
-                                                                key={city.id}
-                                                                onClick={() => {
-                                                                    setData('city_id', city.id);
-                                                                    setSearchCity(city.name);
-                                                                    setShowCityDropdown(false);
-                                                                }}
-                                                                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
-                                                                    data.city_id === city.id ? 'bg-blue-50' : ''
-                                                                }`}
-                                                            >
-                                                                <div className="font-medium text-gray-900">{city.name}</div>
-                                                                <div className="text-sm text-gray-500">{city.region} reģions</div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-4 py-2 text-gray-500 text-sm">
-                                                            Nav atrasta pilsēta
+                                                <div className="fixed inset-0 z-10" onClick={() => setShowCityDropdown(false)} />
+                                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                    {filteredCities.length > 0 ? filteredCities.map(city => (
+                                                        <div
+                                                            key={city.id}
+                                                            onClick={() => {
+                                                                setField('city_id', city.id);
+                                                                setSearchCity(city.name);
+                                                                setShowCityDropdown(false);
+                                                            }}
+                                                            className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${data.city_id === city.id ? 'bg-blue-50' : ''}`}
+                                                        >
+                                                            <div className="font-medium text-gray-900">{city.name}</div>
+                                                            <div className="text-sm text-gray-500">{city.region} reģions</div>
                                                         </div>
+                                                    )) : (
+                                                        <div className="px-4 py-2 text-gray-500 text-sm">Nav atrasta pilsēta</div>
                                                     )}
                                                 </div>
                                             </>
                                         )}
                                     </div>
-                                    {errors.city_id && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.city_id}</p>
-                                    )}
+                                    {errors.city_id && <p className="text-sm text-red-600">{errors.city_id}</p>}
                                 </div>
 
                                 {/* Max Members & Privacy */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="max_members" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <div className="grid gap-1">
+                                        <label htmlFor="max_members" className="block text-sm font-medium text-gray-700">
                                             Maksimālais dalībnieku skaits
                                         </label>
                                         <input
-                                            type="number"
                                             id="max_members"
+                                            type="number"
                                             value={data.max_members}
-                                            onChange={e => setData('max_members', e.target.value)}
+                                            onChange={e => setField('max_members', e.target.value)}
                                             min={memberStats.total_members.toString()}
                                             max="500"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                                             placeholder="Neierobežots"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:border-gray-400 ${errors.max_members ? 'border-red-500' : 'border-gray-300'}`}
                                         />
-                                        {errors.max_members && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.max_members}</p>
-                                        )}
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Pašreiz: {memberStats.total_members} dalībnieki
-                                        </p>
+                                        {errors.max_members && <p className="text-sm text-red-600">{errors.max_members}</p>}
+                                        <p className="text-xs text-gray-500">Pašreiz: {memberStats.total_members} dalībnieki</p>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Privātums
-                                        </label>
+                                    <div className="grid gap-1">
+                                        <label className="block text-sm font-medium text-gray-700">Privātums</label>
                                         <div className="space-y-2">
-                                            <label className="flex items-center">
+                                            <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
                                                     type="radio"
                                                     name="privacy"
                                                     checked={!data.is_private}
-                                                    onChange={() => setData('is_private', false)}
-                                                    className="h-4 w-4 text-black focus:ring-black border-gray-300"
+                                                    onChange={() => setField('is_private', false)}
+                                                    className="h-4 w-4"
                                                 />
-                                                <Globe className="w-4 h-4 ml-2 mr-1 text-gray-500" />
+                                                <Globe className="w-4 h-4 text-gray-500" />
                                                 <span className="text-sm text-gray-700">Publiska grupa</span>
                                             </label>
-                                            <label className="flex items-center">
+                                            <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
                                                     type="radio"
                                                     name="privacy"
                                                     checked={data.is_private}
-                                                    onChange={() => setData('is_private', true)}
-                                                    className="h-4 w-4 text-black focus:ring-black border-gray-300"
+                                                    onChange={() => setField('is_private', true)}
+                                                    className="h-4 w-4"
                                                 />
-                                                <Lock className="w-4 h-4 ml-2 mr-1 text-gray-500" />
+                                                <Lock className="w-4 h-4 text-gray-500" />
                                                 <span className="text-sm text-gray-700">Privāta grupa</span>
                                             </label>
                                         </div>
@@ -308,53 +287,32 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                                 </div>
 
                                 {/* Cover Photo */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Galvenā bilde
-                                    </label>
+                                <div className="grid gap-1">
+                                    <label className="block text-sm font-medium text-gray-700">Galvenā bilde</label>
                                     <div className="flex items-center gap-4">
                                         {group.cover_photo_url && (
-                                            <img
-                                                src={group.cover_photo_url}
-                                                alt="Pašreizējā bilde"
-                                                className="w-20 h-12 object-cover rounded border"
-                                            />
+                                            <img src={group.cover_photo_url} alt="Pašreizējā bilde" className="w-20 h-12 object-cover rounded border" />
                                         )}
-                                        <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                                        <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors">
                                             <Upload className="w-4 h-4" />
-                                            <span className="text-sm">
-                                                {group.cover_photo_url ? 'Mainīt bildi' : 'Augšupielādēt bildi'}
-                                            </span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleCoverPhotoChange}
-                                                className="hidden"
-                                            />
+                                            <span className="text-sm">{group.cover_photo_url ? 'Mainīt bildi' : 'Augšupielādēt bildi'}</span>
+                                            <input type="file" accept="image/*" onChange={handleCoverPhotoChange} className="hidden" />
                                         </label>
                                     </div>
                                     {data.cover_photo && (
-                                        <p className="mt-2 text-sm text-green-600">
-                                            Izvēlēta jauna bilde: {data.cover_photo.name}
-                                        </p>
+                                        <p className="text-sm text-green-600">Izvēlēta jauna bilde: {data.cover_photo.name}</p>
                                     )}
-                                    {errors.cover_photo && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.cover_photo}</p>
-                                    )}
+                                    {errors.cover_photo && <p className="text-sm text-red-600">{errors.cover_photo}</p>}
                                 </div>
 
                                 {/* Sports */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Sporta veidi *
-                                    </label>
+                                <div className="grid gap-1">
+                                    <label className="block text-sm font-medium text-gray-700">Sporta veidi *</label>
 
-                                    {/* Selected Sports */}
-                                    <div className="space-y-3 mb-4">
-                                        {selectedSports.map(selectedSport => {
+                                    <div className="space-y-2 mb-2">
+                                        {data.sports.map((selectedSport: { id: number; skill_level: string }) => {
                                             const sport = sports.find(s => s.id === selectedSport.id);
                                             if (!sport) return null;
-
                                             return (
                                                 <div key={sport.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                                                     <span className="text-lg">{sport.icon}</span>
@@ -362,7 +320,7 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                                                     <select
                                                         value={selectedSport.skill_level}
                                                         onChange={e => handleSkillLevelChange(sport.id, e.target.value)}
-                                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-black"
+                                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-400"
                                                     >
                                                         <option value="all">Visi līmeņi</option>
                                                         <option value="beginner">Iesācēji</option>
@@ -381,7 +339,6 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                                         })}
                                     </div>
 
-                                    {/* Add Sports */}
                                     {availableSports.length > 0 && (
                                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                                             <p className="text-sm text-gray-600 mb-3">Pievienot sporta veidu:</p>
@@ -402,25 +359,30 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                                         </div>
                                     )}
 
-                                    {errors.sports && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.sports}</p>
-                                    )}
+                                    {errors.sports && <p className="text-sm text-red-600">{errors.sports}</p>}
                                 </div>
 
-                                {/* Submit Button */}
-                                <div className="flex gap-4 pt-4">
+                                {/* Submit */}
+                                <div className="flex gap-3 mt-2">
                                     <Link
                                         href={route('groups.show', group.id)}
-                                        className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center"
+                                        className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-center"
                                     >
                                         Atcelt
                                     </Link>
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                                        className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white font-medium py-3 rounded-md transition-colors flex items-center justify-center space-x-2"
                                     >
-                                        {processing ? 'Saglabā...' : 'Saglabāt izmaiņas'}
+                                        {processing ? (
+                                            <>
+                                                <LoaderCircle className="w-4 h-4 animate-spin" />
+                                                <span>Saglabā...</span>
+                                            </>
+                                        ) : (
+                                            <span>Saglabāt izmaiņas</span>
+                                        )}
                                     </button>
                                 </div>
                             </form>
@@ -488,7 +450,7 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                             </div>
                         </div>
 
-                        {/* Danger Zone (Creator only) */}
+                        {/* Danger Zone */}
                         {isCreator && (
                             <div className="bg-white border border-red-200 rounded-lg p-6">
                                 <h3 className="font-semibold text-red-900 mb-4">Bīstama zona</h3>
@@ -531,7 +493,7 @@ export default function GroupSettings({ user, group, sports, cities, memberStats
                             </button>
                             <Link
                                 href={route('groups.destroy', group.id)}
-                                method="post"
+                                method="delete"
                                 as="button"
                                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-center"
                             >

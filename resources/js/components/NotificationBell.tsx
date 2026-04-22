@@ -42,8 +42,6 @@ export default function NotificationBell({ userId, pusherKey = '', pusherCluster
                     setNotifications(prev => [notification.notification, ...prev].slice(0, 10));
                     setUnreadCount(prev => prev + 1);
 
-                    // Play notification sound (optional)
-                    playNotificationSound();
                 });
 
                 console.log('Notifications WebSocket initialized');
@@ -136,12 +134,7 @@ export default function NotificationBell({ userId, pusherKey = '', pusherCluster
         }
     };
 
-    // Play notification sound
-    const playNotificationSound = () => {
-        const audio = new Audio('/sounds/notification.mp3');
-        audio.volume = 0.5;
-        audio.play().catch(e => console.log('Could not play sound:', e));
-    };
+
 
     // Get icon component based on type
     const getIcon = (iconType: string) => {

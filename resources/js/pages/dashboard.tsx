@@ -122,7 +122,7 @@ export default function Dashboard({ user, myGroups = [], upcomingEvents = [] }: 
 
                 <div className="text-center mb-12">
                     <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">
-                        Sveiks, {user.name}!
+                        Sveiki, {user.name}!
                     </h1>
                     <p className="text-xl text-gray-600">
                         Gatavs jaunām sporta aktivitātēm?

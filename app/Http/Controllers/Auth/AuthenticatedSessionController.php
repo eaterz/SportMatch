@@ -40,10 +40,6 @@ class AuthenticatedSessionController extends Controller
         if ($user && $user->is_admin) {
             return redirect()->route('admin.verification.dashboard');
         }
-        throw \Illuminate\Validation\ValidationException::withMessages([
-            'email' => ['Test error message'],
-            'password' => ['Another test error'],
-        ]);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

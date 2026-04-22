@@ -23,37 +23,62 @@ class RegisteredUserController extends Controller
         return Inertia::render('auth/register');
     }
 
-
-
-
-    // Saglabā jaunu lietotāju datubāzē un pieslēdz viņu sistēmai
     public function store(Request $request): RedirectResponse
     {
-        // Validācija – pārbauda, vai lietotāja ievadītie dati ir korekti
         $request->validate([
-            'name' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[\p{L}\s\-]+$/u',
+            ],
+            'lastname' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[\p{L}\s\-]+$/u',
+            ],
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => [
+                'required',
+                'confirmed',
+                Rules\Password::defaults()
+                    ->min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised(),
+                'not_regex:/^(password|parole|123456|qwerty)/i',
+            ],
+        ], [
+            'name.required' => 'Vārds ir obligāts.',
+            'name.regex' => 'Vārdā drīkst būt tikai burti.',
+            'lastname.required' => 'Uzvārds ir obligāts.',
+            'lastname.regex' => 'Uzvārdā drīkst būt tikai burti.',
+            'email.required' => 'E-pasts ir obligāts.',
+            'email.email' => 'Ievadi derīgu e-pasta adresi.',
+            'email.unique' => 'Šis e-pasts jau ir reģistrēts.',
+            'password.required' => 'Parole ir obligāta.',
+            'password.confirmed' => 'Paroles nesakrīt.',
+            'password.not_regex' => 'Parole nedrīkst būt tik vienkārša.',
         ]);
 
-        // Izveido jaunu lietotāju datubāzē ar ievadītajiem datiem
         $user = User::create([
-            'name' => $request->name, // saglabā vārdu
-            'lastname' => $request->lastname, // saglabā uzvārdu
-            'email' => $request->email, // saglabā e-pastu
-            'password' => Hash::make($request->password), // paroli šifrē ar Hash
+            'name' => $request->name,
+            'lastname' => $request->lastname,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
         ]);
 
-        // Izsauc notikumu – jauns lietotājs reģistrēts (var nosūtīt e-pastu utt.)
+
         event(new Registered($user));
 
-        // Automātiski pieslēdz jauno lietotāju sistēmā
+
         Auth::login($user);
 
-        // Pēc reģistrācijas pāradresē uz profila aizpildīšanas pirmo soli ar paziņojumu
         return redirect()->route('profile.setup.step1')
             ->with('success', 'Reģistrācija veiksmīga! Tagad aizpildi savu profilu.');
     }
+
 
 }

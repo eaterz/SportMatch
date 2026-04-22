@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import axios from 'axios';
 import {
     ArrowLeft, MapPin, Users, User, Calendar, MessageSquare, Heart,
     Send, Pin, Trash2, Lock, Globe, Settings,
@@ -59,7 +60,6 @@ interface Comment {
     post_id: number;
 }
 
-
 interface CommentEvent {
     comment: Comment;
 }
@@ -108,7 +108,6 @@ interface Props {
     pusherCluster?: string;
 }
 
-
 export default function GroupsShow({
                                        user,
                                        group,
@@ -122,17 +121,18 @@ export default function GroupsShow({
     const [showPostForm, setShowPostForm] = useState(false);
     const [selectedPost, setSelectedPost] = useState<number | null>(null);
 
-    const { data: postData, setData: setPostData, post: submitPost, processing: processingPost, reset: resetPost } = useForm({
-        content: '',
-        image: null as File | null,
-    });
+    // Post form state
+    const [postContent, setPostContent] = useState('');
+    const [postImage, setPostImage] = useState<File | null>(null);
+    const [processingPost, setProcessingPost] = useState(false);
+    const [postError, setPostError] = useState('');
 
-    const { data: commentData, setData: setCommentData, post: submitComment, processing: processingComment, reset: resetComment } = useForm({
-        content: '',
-        post_id: null as number | null,
-    });
+    // Comment state
+    const [commentContent, setCommentContent] = useState('');
+    const [commentPostId, setCommentPostId] = useState<number | null>(null);
+    const [processingComment, setProcessingComment] = useState(false);
 
-    //posts
+    // WebSocket for posts
     useEffect(() => {
         if (!pusherKey) return;
 
@@ -172,8 +172,6 @@ export default function GroupsShow({
                         ));
                     }
                 });
-
-                console.log('Group WebSocket initialized');
             } catch (error) {
                 console.error('Failed to initialize group WebSocket:', error);
             }
@@ -186,7 +184,7 @@ export default function GroupsShow({
         };
     }, [group.id, pusherKey, pusherCluster]);
 
-    //group deleted to kick member
+    // WebSocket for group deletion
     useEffect(() => {
         if (!pusherKey) return;
 
@@ -195,29 +193,17 @@ export default function GroupsShow({
                 await echoService.initialize(pusherKey, pusherCluster);
 
                 const echo = echoService.getEcho();
-                if (!echo) {
-                    console.warn('Echo not initialized');
-                    return;
-                }
+                if (!echo) return;
 
-                const channelName = `notifications.${user.id}`;
-
-                // Use Laravel Echo's .listen() method with dot prefix
-                echo.channel(channelName)
+                echo.channel(`notifications.${user.id}`)
                     .listen('.group.deleted', (data: any) => {
-                        console.log('🚨 Group deleted event received:', data);
-
-                        // Check if the deleted group is the one we're viewing
                         if (data.group_id === group.id) {
-                            // Show alert and redirect immediately
                             alert(`Grupa "${data.group_name}" tika dzēsta`);
                             router.visit('/groups');
                         }
                     });
-
-                console.log('✅ Group deletion listener active for channel:', channelName);
             } catch (error) {
-                console.error('❌ Failed to initialize group deletion listener:', error);
+                console.error('Failed to initialize group deletion listener:', error);
             }
         };
 
@@ -226,63 +212,102 @@ export default function GroupsShow({
         return () => {
             try {
                 const echo = echoService.getEcho();
-                if (echo) {
-                    // Leave the channel to clean up
-                    echo.leave(`notifications.${user.id}`);
-                    console.log('🧹 Cleaned up group deletion listener');
-                }
+                if (echo) echo.leave(`notifications.${user.id}`);
             } catch (error) {
                 console.error('Error cleaning up group deletion listener:', error);
             }
         };
     }, [group.id, user.id, pusherKey, pusherCluster]);
+
     const handleJoinGroup = () => {
-        router.post(`/groups/${group.id}/join`, {}, {
-            preserveScroll: true,
-        });
+        router.post(`/groups/${group.id}/join`, {}, { preserveScroll: true });
     };
 
     const handleLeaveGroup = () => {
         if (confirm('Vai tiešām vēlaties pamest šo grupu?')) {
-            router.post(`/groups/${group.id}/leave`, {}, {
-                preserveScroll: true,
-            });
+            router.post(`/groups/${group.id}/leave`, {}, { preserveScroll: true });
         }
     };
 
-    console.log(group.city?.name);
-
-    const handlePostSubmit = (e: React.FormEvent) => {
+    const handlePostSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        submitPost(`/groups/${group.id}/posts`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                resetPost();
-                setShowPostForm(false);
+        if (!postContent.trim()) return;
+
+        if (postContent.length > 2000) {
+            setPostError('Teksts nedrīkst būt garāks par 2000 rakstzīmēm!');
+            return;
+        }
+
+        setProcessingPost(true);
+        setPostError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('content', postContent);
+            if (postImage) {
+                formData.append('image', postImage);
             }
-        });
-    };
 
-    const handleCommentSubmit = (postId: number) => {
-        submitComment(`/groups/${group.id}/posts/${postId}/comment`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                resetComment();
-            }
-        });
-    };
-
-    const toggleLike = (postId: number) => {
-        router.post(`/groups/${group.id}/posts/${postId}/like`, {}, {
-            preserveScroll: true,
-        });
-    };
-
-    const deletePost = (postId: number) => {
-        if (confirm('Vai tiešām vēlaties dzēst šo ierakstu?')) {
-            router.delete(`/groups/${group.id}/posts/${postId}`, {
-                preserveScroll: true,
+            await axios.post(`/groups/${group.id}/posts`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
+
+            setPostContent('');
+            setPostImage(null);
+            setShowPostForm(false);
+        } catch (error: any) {
+            if (error.response?.status === 422) {
+                const errors = error.response.data.errors;
+                setPostError(errors?.content?.[0] || 'Kļūda publicējot ierakstu');
+            } else if (error.response?.status === 413) {
+                setPostError('Saturs ir pārāk liels!');
+            } else {
+                setPostError('Neizdevās izveidot ierakstu');
+            }
+        } finally {
+            setProcessingPost(false);
+        }
+    };
+
+    const handleCommentSubmit = async (postId: number) => {
+        if (!commentContent.trim()) return;
+
+        setProcessingComment(true);
+        try {
+            await axios.post(`/groups/${group.id}/posts/${postId}/comment`, {
+                content: commentContent
+            });
+
+            setCommentContent('');
+            setCommentPostId(null);
+        } catch (error: any) {
+            if (error.response?.status === 422) {
+                const errors = error.response.data.errors;
+                alert(errors?.content?.[0] || 'Kļūda pievienojot komentāru');
+            } else {
+                alert('Neizdevās pievienot komentāru');
+            }
+        } finally {
+            setProcessingComment(false);
+        }
+    };
+
+    const toggleLike = async (postId: number) => {
+        try {
+            await axios.post(`/groups/${group.id}/posts/${postId}/like`);
+        } catch (error) {
+            console.error('Error toggling like:', error);
+        }
+    };
+
+    const deletePost = async (postId: number) => {
+        if (!confirm('Vai tiešām vēlaties dzēst šo ierakstu?')) return;
+
+        try {
+            await axios.post(`/groups/${group.id}/posts/${postId}`);
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            alert('Neizdevās dzēst ierakstu');
         }
     };
 
@@ -306,11 +331,8 @@ export default function GroupsShow({
             const minutes = Math.floor(diff / (1000 * 60));
             return `${minutes} min`;
         }
-        if (hours < 24) {
-            return `${hours}h`;
-        }
-        const days = Math.floor(hours / 24);
-        return `${days}d`;
+        if (hours < 24) return `${hours}h`;
+        return `${Math.floor(hours / 24)}d`;
     };
 
     return (
@@ -321,28 +343,17 @@ export default function GroupsShow({
                 <div className="relative h-64 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                     {group.cover_photo_url ? (
                         <>
-                            {/* Main cover image with proper crop */}
-                            <img
-                                src={group.cover_photo_url}
-                                alt={group.name}
-                                className="w-full h-full object-cover"
-                            />
-                            {/* Gradient overlay for better text readability */}
+                            <img src={group.cover_photo_url} alt={group.name} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
                         </>
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 opacity-80" />
                     )}
 
-                    {/* Back button */}
-                    <Link
-                        href="/groups"
-                        className="absolute top-4 left-4 p-3 bg-white/95 backdrop-blur-md rounded-xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl"
-                    >
+                    <Link href="/groups" className="absolute top-4 left-4 p-3 bg-white/95 backdrop-blur-md rounded-xl hover:bg-white transition-all duration-300 shadow-lg">
                         <ArrowLeft className="w-5 h-5 text-gray-900" />
                     </Link>
 
-                    {/* Privacy badge */}
                     {group.is_private && (
                         <div className="absolute top-4 right-4 bg-black/90 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg font-semibold">
                             <Lock className="w-4 h-4" />
@@ -366,9 +377,7 @@ export default function GroupsShow({
                                 <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4" />
                                     <span className="font-medium">{group.approved_members_count} dalībnieki</span>
-                                    {group.max_members && (
-                                        <span className="text-gray-400 font-medium">/ {group.max_members}</span>
-                                    )}
+                                    {group.max_members && <span className="text-gray-400 font-medium">/ {group.max_members}</span>}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {group.is_private ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
@@ -377,55 +386,36 @@ export default function GroupsShow({
                             </div>
 
                             {group.description && (
-                                <p className="text-gray-700 max-w-2xl leading-relaxed">{group.description}</p>
+                                <p className="text-gray-700 max-w-2xl leading-relaxed break-words">{group.description}</p>
                             )}
                         </div>
 
-                        {/* Action buttons */}
                         <div className="flex flex-wrap gap-3">
                             {group.is_admin ? (
                                 <>
-                                    <Link
-                                        href={`/groups/${group.id}/settings`}
-                                        className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
-                                    >
+                                    <Link href={`/groups/${group.id}/settings`} className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold">
                                         <Settings className="w-4 h-4" />
                                         <span>Pārvaldīt</span>
                                     </Link>
-                                    <Link
-                                        href={`/groups/${group.id}/members`}
-                                        className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all duration-300 font-semibold"
-                                    >
+                                    <Link href={`/groups/${group.id}/members`} className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all font-semibold">
                                         Dalībnieki
                                     </Link>
                                 </>
                             ) : group.is_member ? (
                                 <>
-                                    <button
-                                        onClick={handleLeaveGroup}
-                                        className="px-6 py-3 border-2 border-red-300 text-red-700 rounded-xl hover:bg-red-50 transition-all duration-300 font-semibold"
-                                    >
+                                    <button onClick={handleLeaveGroup} className="px-6 py-3 border-2 border-red-300 text-red-700 rounded-xl hover:bg-red-50 transition-all font-semibold">
                                         Pamest grupu
                                     </button>
-                                    <Link
-                                        href={`/groups/${group.id}/members`}
-                                        className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all duration-300 font-semibold"
-                                    >
+                                    <Link href={`/groups/${group.id}/members`} className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-900 transition-all font-semibold">
                                         Dalībnieki
                                     </Link>
                                 </>
                             ) : group.has_pending_request ? (
-                                <button
-                                    disabled
-                                    className="px-8 py-3 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed font-semibold"
-                                >
+                                <button disabled className="px-8 py-3 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed font-semibold">
                                     Gaida apstiprinājumu
                                 </button>
                             ) : (
-                                <button
-                                    onClick={handleJoinGroup}
-                                    className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold"
-                                >
+                                <button onClick={handleJoinGroup} className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold">
                                     <UserPlus className="w-4 h-4" />
                                     <span>Pievienoties</span>
                                 </button>
@@ -433,17 +423,16 @@ export default function GroupsShow({
                         </div>
                     </div>
 
-                    {/* Sports */}
                     {group.sports.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-6">
                             {group.sports.map(sport => (
                                 <span key={sport.id} className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl text-sm font-medium">
-                        <span>{sport.icon}</span>
-                        <span>{sport.name}</span>
+                                    <span>{sport.icon}</span>
+                                    <span>{sport.name}</span>
                                     {sport.pivot?.skill_level && sport.pivot.skill_level !== 'all' && (
                                         <span className="text-gray-500">({sport.pivot.skill_level})</span>
                                     )}
-                    </span>
+                                </span>
                             ))}
                         </div>
                     )}
@@ -452,63 +441,58 @@ export default function GroupsShow({
 
             <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main content - Posts */}
+                    {/* Posts */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* New post form */}
                         {group.is_member && (
                             <div className="bg-white border border-gray-200 rounded-lg p-4">
                                 {showPostForm ? (
                                     <form onSubmit={handlePostSubmit}>
                                         <textarea
-                                            value={postData.content}
-                                            onChange={e => setPostData('content', e.target.value)}
+                                            value={postContent}
+                                            onChange={e => setPostContent(e.target.value)}
                                             placeholder="Ko tu domā?"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
                                             rows={3}
+                                            maxLength={2000}
                                             required
                                         />
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className={`text-xs ${postContent.length > 1800 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                {postContent.length}/2000
+                                            </span>
+                                        </div>
+                                        {postError && (
+                                            <p className="text-sm text-red-600 mt-1">{postError}</p>
+                                        )}
                                         <div className="flex justify-between items-center mt-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPostForm(false)}
-                                                className="text-gray-600 hover:text-gray-800"
-                                            >
+                                            <button type="button" onClick={() => { setShowPostForm(false); setPostError(''); }} className="text-gray-600 hover:text-gray-800">
                                                 Atcelt
                                             </button>
                                             <button
                                                 type="submit"
-                                                disabled={processingPost || !postData.content.trim()}
+                                                disabled={processingPost || !postContent.trim()}
                                                 className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
                                             >
-                                                Publicēt
+                                                {processingPost ? 'Publicē...' : 'Publicēt'}
                                             </button>
                                         </div>
                                     </form>
                                 ) : (
-                                    <button
-                                        onClick={() => setShowPostForm(true)}
-                                        className="w-full text-left px-4 py-3 bg-gray-50 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-                                    >
+                                    <button onClick={() => setShowPostForm(true)} className="w-full text-left px-4 py-3 bg-gray-50 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
                                         Uzraksti kaut ko...
                                     </button>
                                 )}
                             </div>
                         )}
 
-                        {/* Posts */}
                         {posts.length > 0 ? (
                             posts.map(post => (
                                 <div key={post.id} className="bg-white border border-gray-200 rounded-lg">
-                                    {/* Post header */}
                                     <div className="p-4 flex items-start justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
                                                 {post.user.profile?.main_photo ? (
-                                                    <img
-                                                        src={post.user.profile.main_photo}
-                                                        alt={post.user.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                    <img src={post.user.profile.main_photo} alt={post.user.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm font-medium">
                                                         {post.user.name.charAt(0)}
@@ -516,44 +500,32 @@ export default function GroupsShow({
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-900">
-                                                    {post.user.name} {post.user.lastname}
-                                                </p>
+                                                <p className="font-semibold text-gray-900">{post.user.name} {post.user.lastname}</p>
                                                 <p className="text-xs text-gray-500">
                                                     {formatRelativeTime(post.created_at)}
                                                     {post.is_pinned && (
                                                         <span className="ml-2 inline-flex items-center gap-1 text-blue-600">
-                                                            <Pin className="w-3 h-3" />
-                                                            Piesprausts
+                                                            <Pin className="w-3 h-3" />Piesprausts
                                                         </span>
                                                     )}
                                                 </p>
                                             </div>
                                         </div>
                                         {(group.is_admin || post.user.id === user.id) && (
-                                            <button
-                                                onClick={() => deletePost(post.id)}
-                                                className="text-gray-400 hover:text-red-600"
-                                            >
+                                            <button onClick={() => deletePost(post.id)} className="text-gray-400 hover:text-red-600">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         )}
                                     </div>
 
-                                    {/* Post content */}
                                     <div className="px-4 pb-4">
-                                        <p className="text-gray-800 whitespace-pre-wrap">{post.content}</p>
+                                        <p className="text-gray-800 whitespace-pre-wrap break-words">{post.content}</p>
                                     </div>
 
-                                    {/* Post actions */}
                                     <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
                                         <button
                                             onClick={() => toggleLike(post.id)}
-                                            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors ${
-                                                post.is_liked
-                                                    ? 'text-red-600 bg-red-50'
-                                                    : 'text-gray-600 hover:bg-gray-100'
-                                            }`}
+                                            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors ${post.is_liked ? 'text-red-600 bg-red-50' : 'text-gray-600 hover:bg-gray-100'}`}
                                         >
                                             <Heart className={`w-4 h-4 ${post.is_liked ? 'fill-current' : ''}`} />
                                             <span className="text-sm">{post.likes_count}</span>
@@ -567,75 +539,54 @@ export default function GroupsShow({
                                         </button>
                                     </div>
 
-                                    {/* Comments section */}
                                     {selectedPost === post.id && (
                                         <div className="px-4 pb-4 border-t border-gray-100">
-                                            {/* Existing comments */}
                                             {post.comments && post.comments.length > 0 && (
                                                 <div className="space-y-3 mt-3">
                                                     {post.comments.map(comment => (
                                                         <div key={comment.id} className="flex gap-3">
                                                             <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
                                                                 {comment.user.profile?.main_photo ? (
-                                                                    <img
-                                                                        src={comment.user.profile.main_photo}
-                                                                        alt={comment.user.name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
+                                                                    <img src={comment.user.profile.main_photo} alt={comment.user.name} className="w-full h-full object-cover" />
                                                                 ) : (
                                                                     <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-medium">
                                                                         {comment.user.name.charAt(0)}
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <div className="flex-1">
+                                                            <div className="flex-1 min-w-0">
                                                                 <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                                                    <p className="font-medium text-sm text-gray-900">
-                                                                        {comment.user.name} {comment.user.lastname}
-                                                                    </p>
-                                                                    <p className="text-gray-800 text-sm">{comment.content}</p>
+                                                                    <p className="font-medium text-sm text-gray-900">{comment.user.name} {comment.user.lastname}</p>
+                                                                    <p className="text-gray-800 text-sm break-words">{comment.content}</p>
                                                                 </div>
-                                                                <p className="text-xs text-gray-500 mt-1 ml-3">
-                                                                    {formatRelativeTime(comment.created_at)}
-                                                                </p>
+                                                                <p className="text-xs text-gray-500 mt-1 ml-3">{formatRelativeTime(comment.created_at)}</p>
                                                             </div>
                                                         </div>
                                                     ))}
-                                                    {post.comments_count > post.comments.length && (
-                                                        <button
-                                                            onClick={() => {
-                                                                // TODO: Load more comments
-                                                                console.log('Load more comments for post', post.id);
-                                                            }}
-                                                            className="text-sm text-gray-600 hover:text-gray-800 ml-11"
-                                                        >
-                                                            Skatīt vēl {post.comments_count - post.comments.length} komentārus
-                                                        </button>
-                                                    )}
                                                 </div>
                                             )}
 
-                                            {/* Comment form */}
                                             {group.is_member && (
                                                 <div className="flex gap-2 mt-3">
                                                     <input
                                                         type="text"
-                                                        value={commentData.post_id === post.id ? commentData.content : ''}
+                                                        value={commentPostId === post.id ? commentContent : ''}
                                                         onChange={e => {
-                                                            setCommentData('content', e.target.value);
-                                                            setCommentData('post_id', post.id);
+                                                            setCommentContent(e.target.value);
+                                                            setCommentPostId(post.id);
                                                         }}
                                                         placeholder="Raksti komentāru..."
+                                                        maxLength={500}
                                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm"
                                                         onKeyPress={e => {
-                                                            if (e.key === 'Enter' && commentData.content.trim()) {
+                                                            if (e.key === 'Enter' && commentContent.trim()) {
                                                                 handleCommentSubmit(post.id);
                                                             }
                                                         }}
                                                     />
                                                     <button
                                                         onClick={() => handleCommentSubmit(post.id)}
-                                                        disabled={processingComment || !commentData.content.trim()}
+                                                        disabled={processingComment || !commentContent.trim()}
                                                         className="p-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
                                                     >
                                                         <Send className="w-4 h-4" />
@@ -650,37 +601,25 @@ export default function GroupsShow({
                             <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                                 <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                 <p className="text-gray-600">Vēl nav neviena ieraksta</p>
-                                {group.is_member && (
-                                    <p className="text-sm text-gray-500 mt-2">Esi pirmais, kas kaut ko uzraksta!</p>
-                                )}
+                                {group.is_member && <p className="text-sm text-gray-500 mt-2">Esi pirmais, kas kaut ko uzraksta!</p>}
                             </div>
                         )}
                     </div>
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Upcoming events */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-semibold text-gray-900">Nākamie pasākumi</h3>
                                 {group.is_member && (
-                                    <Link
-                                        href={`/groups/${group.id}/events/create`}
-                                        className="text-sm text-black hover:underline"
-                                    >
-                                        Izveidot
-                                    </Link>
+                                    <Link href={`/groups/${group.id}/events/create`} className="text-sm text-black hover:underline">Izveidot</Link>
                                 )}
                             </div>
                             {upcomingEvents.length > 0 ? (
                                 <div className="space-y-3">
                                     {upcomingEvents.map(event => (
-                                        <Link
-                                            key={event.id}
-                                            href={`/groups/${group.id}/events/${event.id}`}
-                                            className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                        >
-                                            <p className="font-medium text-gray-900 mb-1">{event.title}</p>
+                                        <Link key={event.id} href={`/groups/${group.id}/events/${event.id}`} className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <p className="font-medium text-gray-900 mb-1 break-words">{event.title}</p>
                                             <div className="flex items-center gap-2 text-xs text-gray-600">
                                                 <Calendar className="w-3 h-3" />
                                                 <span>{formatDate(event.event_date)}</span>
@@ -700,26 +639,16 @@ export default function GroupsShow({
                                 <p className="text-sm text-gray-500">Nav plānotu pasākumu</p>
                             )}
                             {upcomingEvents.length > 0 && (
-                                <Link
-                                    href={`/groups/${group.id}/events`}
-                                    className="flex items-center justify-center gap-1 mt-4 text-sm text-black hover:underline"
-                                >
-                                    Visi pasākumi
-                                    <ChevronRight className="w-4 h-4" />
+                                <Link href={`/groups/${group.id}/events`} className="flex items-center justify-center gap-1 mt-4 text-sm text-black hover:underline">
+                                    Visi pasākumi <ChevronRight className="w-4 h-4" />
                                 </Link>
                             )}
                         </div>
 
-                        {/* Members preview */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-semibold text-gray-900">Dalībnieki</h3>
-                                <Link
-                                    href={`/groups/${group.id}/members`}
-                                    className="text-sm text-black hover:underline"
-                                >
-                                    Visi
-                                </Link>
+                                <Link href={`/groups/${group.id}/members`} className="text-sm text-black hover:underline">Visi</Link>
                             </div>
                             {approvedMembers && approvedMembers.length > 0 ? (
                                 <div className="grid grid-cols-5 gap-2">
@@ -727,28 +656,20 @@ export default function GroupsShow({
                                         <div key={member.id} className="relative group">
                                             <div className="w-12 h-12 bg-gray-200 rounded-full overflow-hidden">
                                                 {member.profile?.main_photo ? (
-                                                    <img
-                                                        src={member.profile.main_photo}
-                                                        alt={member.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                    <img src={member.profile.main_photo} alt={member.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm font-medium">
                                                         {member.name.charAt(0)}
                                                     </div>
                                                 )}
                                             </div>
-                                            {/* Tooltip */}
                                             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                                                 {member.name} {member.lastname}
                                             </div>
                                         </div>
                                     ))}
                                     {group.approved_members_count > 10 && (
-                                        <Link
-                                            href={`/groups/${group.id}/members`}
-                                            className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
-                                        >
+                                        <Link href={`/groups/${group.id}/members`} className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors">
                                             <span className="text-xs">+{group.approved_members_count - 10}</span>
                                         </Link>
                                     )}
@@ -758,7 +679,6 @@ export default function GroupsShow({
                             )}
                         </div>
 
-                        {/* Group info */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                             <h3 className="font-semibold text-gray-900 mb-4">Par grupu</h3>
                             <div className="space-y-3 text-sm">
