@@ -942,6 +942,7 @@ class GroupsController extends Controller
         $memberIds = $group->approvedMembers()->pluck('user_id')->toArray();
         $groupName = $group->name;
         $groupId = $group->id;
+        $deletedBy = $user->name . ' ' . $user->lastname;
 
         // Delete cover photo
         if ($group->cover_photo) {
@@ -960,19 +961,17 @@ class GroupsController extends Controller
         // Broadcast to all members
         broadcast(new GroupDeleted($groupId, $groupName, $memberIds))->toOthers();
 
-        // Send notifications to members
-        foreach ($memberIds as $memberId) {
-            if ($memberId !== $user->id) {
-                \App\Models\Notification::create([
-                    'user_id' => $memberId,
-                    'type' => 'group_deleted',
-                    'data' => [
-                        'group_id' => $groupId,
-                        'group_name' => $groupName,
-                        'deleted_by' => $user->name . ' ' . $user->lastname
-                    ]
-                ]);
-            }
+        // Send notifications to members using Laravel Notifications
+        $members = User::whereIn('id', $memberIds)
+            ->where('id', '!=', $user->id)
+            ->get();
+
+        foreach ($members as $member) {
+            $member->notify(new \App\Notifications\GroupDeleted(
+                groupId: $groupId,
+                groupName: $groupName,
+                deletedBy: $deletedBy
+            ));
         }
 
         return redirect()->route('groups.index')
