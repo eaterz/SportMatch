@@ -638,11 +638,14 @@ export default function GroupsShow({
                             ) : (
                                 <p className="text-sm text-gray-500">Nav plānotu pasākumu</p>
                             )}
-                            {upcomingEvents.length > 0 && (
-                                <Link href={`/groups/${group.id}/events`} className="flex items-center justify-center gap-1 mt-4 text-sm text-black hover:underline">
-                                    Visi pasākumi <ChevronRight className="w-4 h-4" />
-                                </Link>
-                            )}
+
+                            <Link
+                                href={`/groups/${group.id}/events`}
+                                className="mt-4 flex items-center justify-center gap-1 w-full py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                Visi pasākumi
+                                <ChevronRight className="w-4 h-4" />
+                            </Link>
                         </div>
 
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
