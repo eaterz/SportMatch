@@ -28,7 +28,7 @@ class EventFeedbackController extends Controller
         return Inertia::render('Groups/EventFeedback', [
             'user' => $user,
             'group' => $group,
-            'event' => $event->load('creator')
+            'event' => $event->load(['creator', 'city'])
         ]);
     }
 
@@ -103,7 +103,7 @@ class EventFeedbackController extends Controller
         return Inertia::render('Groups/EventFeedbackList', [
             'user' => $user,
             'group' => $group,
-            'event' => $event->load('creator'),
+            'event' => $event->load(['creator', 'city']),
             'feedback' => $feedback,
             'stats' => $stats,
             'userFeedback' => $event->feedback()->where('user_id', $user->id)->first()

@@ -119,6 +119,7 @@ export default function EditEvent({ user, group, event, cities }: Props) {
                                 onChange={e => setData('title', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                                 placeholder="Piemēram: Futbola spēle parkā"
+                                maxLength={50}
                                 required
                             />
                             {errors.title && (
@@ -136,6 +137,7 @@ export default function EditEvent({ user, group, event, cities }: Props) {
                                 value={data.description}
                                 onChange={e => setData('description', e.target.value)}
                                 rows={4}
+                                maxLength={500}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
                                 placeholder="Pasākuma detaļas, kas dalībniekiem būtu jāzina..."
                             />

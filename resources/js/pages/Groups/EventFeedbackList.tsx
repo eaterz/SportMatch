@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, Star, ThumbsUp, ThumbsDown, User,
-    TrendingUp, Award, MapPin, DollarSign, Edit, Trash2
+    TrendingUp, Award, MapPin, DollarSign, Trash2
 } from 'lucide-react';
 
 interface User {
@@ -70,7 +70,7 @@ interface Props {
 }
 
 export default function EventFeedbackList({ user, group, event, feedback, stats, userFeedback }: Props) {
-    const [editingFeedback, setEditingFeedback] = useState<number | null>(null);
+
 
     const getRatingLabel = (rating: string) => {
         const labels: { [key: string]: string } = {
@@ -274,14 +274,6 @@ export default function EventFeedbackList({ user, group, event, feedback, stats,
                                             {/* Actions for own feedback or admin */}
                                             {(item.user.id === user.id || group.is_admin) && (
                                                 <div className="flex gap-2">
-                                                    {item.user.id === user.id && (
-                                                        <button
-                                                            onClick={() => setEditingFeedback(item.id)}
-                                                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                    )}
                                                     <button
                                                         onClick={() => deleteFeedback(item.id)}
                                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -330,12 +322,11 @@ export default function EventFeedbackList({ user, group, event, feedback, stats,
                                             )}
                                         </div>
 
-                                        {/* Comment */}
                                         {item.comment && (
-                                            <p className="text-gray-700 mb-4 whitespace-pre-wrap">
-                                                {item.comment}
-                                            </p>
-                                        )}
+                                                <p className="text-gray-700 mb-4 whitespace-pre-wrap break-words">
+                                                    {item.comment}
+                                                </p>
+                                            )}
 
                                         {/* Category Ratings */}
                                         {(item.organization_rating || item.location_rating || item.value_rating) && (

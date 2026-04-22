@@ -1,4 +1,3 @@
-// File: resources/js/pages/Groups/EventFeedback.tsx
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
@@ -17,11 +16,16 @@ interface Group {
     name: string;
 }
 
+interface City {
+    id: number;
+    name: string;
+}
+
 interface Event {
     id: number;
     title: string;
     description?: string;
-    location: string;
+    city?: City | null;
     event_date: string;
     creator: User;
 }
@@ -50,6 +54,7 @@ export default function EventFeedback({ user, group, event }: Props) {
             preserveScroll: true,
         });
     };
+    console.log(event);
 
     const getRatingText = (rating: number) => {
         switch(rating) {
@@ -91,7 +96,7 @@ export default function EventFeedback({ user, group, event }: Props) {
                         </div>
                         <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>{event.location}</span>
+                            <span>{event.city?.name ?? 'Nav norādīta vieta'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-gray-400" />
