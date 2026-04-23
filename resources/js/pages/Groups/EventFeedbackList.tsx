@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import axios from 'axios';
 import {
     ArrowLeft, Star, ThumbsUp, ThumbsDown, User,
     TrendingUp, Award, MapPin, DollarSign, Trash2
@@ -92,11 +93,19 @@ export default function EventFeedbackList({ user, group, event, feedback, stats,
         return values[rating] || 0;
     };
 
-    const deleteFeedback = (feedbackId: number) => {
-        if (confirm('Vai tiešām vēlaties dzēst šo atsauksmi?')) {
-            router.delete(`/groups/${group.id}/events/${event.id}/feedback/${feedbackId}`, {
-                preserveScroll: true,
+    const deleteFeedback = async (feedbackId?: number) => {
+        if (!feedbackId) return;
+
+        if (!confirm('Vai tiešām vēlaties dzēst šo atsauksmi?')) return;
+
+        try {
+            await axios.post(`/groups/${group.id}/events/${event.id}/feedback/${feedbackId}`, {
+                _method: 'DELETE',
             });
+
+            router.visit(`/groups/${group.id}/events/${event.id}`, { preserveScroll: true });
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -383,7 +392,7 @@ export default function EventFeedbackList({ user, group, event, feedback, stats,
                                     Vēl nav atsauksmju
                                 </h3>
                                 <p className="text-gray-600 mb-6">
-                                    Būdi pirmais, kas dalās ar savu pieredzi!
+                                    Būsi pirmais, kas dalās ar savu pieredzi!
                                 </p>
                                 <Link
                                     href={`/groups/${group.id}/events/${event.id}/feedback/create`}

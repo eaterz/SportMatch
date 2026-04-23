@@ -319,7 +319,8 @@ export default function Friends({ user, friends = [], pendingReceived = [], pend
             <Head title="Draugi - SportMatch" />
             <Navbar user={user} />
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            {/* ✅ Changed: max-w-7xl + px-4 sm:px-6 lg:px-8 to match the Navbar container */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <div className="mb-10">
                     <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">Draugi</h1>
                     <p className="text-xl text-gray-600">Pārvalda savus draugus un draudzības pieprasījumus</p>

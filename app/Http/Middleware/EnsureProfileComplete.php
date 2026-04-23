@@ -12,12 +12,17 @@ class EnsureProfileComplete
     {
         $user = Auth::user();
 
-        // Ja nav pieslēdzies, ļauj turpināt
+        // Nav pieslēdzies — turpina
         if (!$user) {
             return $next($request);
         }
 
-        // Ja jau ir setup route, ļauj turpināt
+        // Admins — profila pārbaude nav vajadzīga
+        if ($user->is_admin) {
+            return $next($request);
+        }
+
+        // Profila setup lapas — turpina
         if ($request->routeIs('profile.setup.*')) {
             return $next($request);
         }

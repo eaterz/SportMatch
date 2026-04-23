@@ -54,7 +54,6 @@ export default function EventFeedback({ user, group, event }: Props) {
             preserveScroll: true,
         });
     };
-    console.log(event);
 
     const getRatingText = (rating: number) => {
         switch(rating) {
