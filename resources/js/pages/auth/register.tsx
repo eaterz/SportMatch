@@ -139,6 +139,28 @@ export default function Register() {
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
+
+                            {/* Real-time password requirements */}
+                            {data.password.length > 0 && (
+                                <div className="mt-1 p-3 bg-gray-50 rounded-md border border-gray-200 flex flex-col gap-1.5">
+                                    {[
+                                        { label: 'Vismaz 8 rakstzīmes', ok: data.password.length >= 8 },
+                                        { label: 'Vismaz 1 lielais burts (A–Z)', ok: /[A-Z]/.test(data.password) },
+                                        { label: 'Vismaz 1 mazais burts (a–z)', ok: /[a-z]/.test(data.password) },
+                                        { label: 'Vismaz 1 cipars (0–9)', ok: /[0-9]/.test(data.password) },
+                                        { label: 'Vismaz 1 speciālzīme (!@#$…)', ok: /[^A-Za-z0-9]/.test(data.password) },
+                                        { label: 'Nav vienkārša (password, 123456…)', ok: !/^(password|parole|123456|qwerty)/i.test(data.password) },
+                                    ].map(({ label, ok }) => (
+                                        <div key={label} className={`flex items-center gap-2 text-sm ${ok ? 'text-green-700' : 'text-red-600'}`}>
+                                            <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-white text-xs flex-shrink-0 ${ok ? 'bg-green-500' : 'bg-red-400'}`}>
+                                                {ok ? '✓' : '✗'}
+                                            </span>
+                                            {label}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                         </div>
 

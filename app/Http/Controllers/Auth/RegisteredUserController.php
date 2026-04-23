@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,7 +39,17 @@ class RegisteredUserController extends Controller
                 'max:255',
                 'regex:/^[\p{L}\s\-]+$/u',
             ],
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => [
+                'required',
+                'string',
+                'max:255',
+                'lowercase',
+                'email',
+                Rules\Email::defaults()
+                    ->rfcCompliant(strict: true)
+                    ->validateMxRecord(),
+                Rule::unique(User::class, 'email'),
+            ],
             'password' => [
                 'required',
                 'confirmed',
@@ -51,17 +62,19 @@ class RegisteredUserController extends Controller
                 'not_regex:/^(password|parole|123456|qwerty)/i',
             ],
         ], [
-            'name.required' => 'Vārds ir obligāts.',
-            'name.regex' => 'Vārdā drīkst būt tikai burti.',
-            'lastname.required' => 'Uzvārds ir obligāts.',
-            'lastname.regex' => 'Uzvārdā drīkst būt tikai burti.',
-            'email.required' => 'E-pasts ir obligāts.',
-            'email.email' => 'Ievadi derīgu e-pasta adresi.',
-            'email.unique' => 'Šis e-pasts jau ir reģistrēts.',
-            'password.required' => 'Parole ir obligāta.',
-            'password.confirmed' => 'Paroles nesakrīt.',
-            'password.not_regex' => 'Parole nedrīkst būt tik vienkārša.',
-        ]);
+        'name.required'    => 'Vārds ir obligāts.',
+        'name.regex'       => 'Vārdā drīkst būt tikai burti.',
+        'lastname.required'=> 'Uzvārds ir obligāts.',
+        'lastname.regex'   => 'Uzvārdā drīkst būt tikai burti.',
+        'email.required'   => 'E-pasts ir obligāts.',
+        'email.email'      => 'Ievadi derīgu e-pasta adresi.',
+        'email.unique'     => 'Šis e-pasts jau ir reģistrēts.',
+        'email.*'          => 'Ievadi derīgu e-pasta adresi.',
+        'password.required'=> 'Parole ir obligāta.',
+        'password.confirmed'=> 'Paroles nesakrīt.',
+        'password.not_regex'=> 'Parole nedrīkst būt tik vienkārša.',
+        'password.*'       => 'Parole neatbilst prasībām.',
+    ]);
 
         $user = User::create([
             'name' => $request->name,
