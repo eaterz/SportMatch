@@ -8,8 +8,10 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Notifications\VerifyPendingEmail;
 
 class ProfileController extends Controller
 {
@@ -51,48 +53,82 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'lastname' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\s\-]+$/u'],
+            'lastname' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\s\-]+$/u'],
             'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                'unique:users,email,' . $user->id
+                'required', 'string', 'email', 'max:255',
+                'unique:users,email,' . $user->id,
+                'unique:users,pending_email,' . $user->id,
             ],
+        ], [
+            'name.required'     => 'Vārds ir obligāts.',
+            'name.regex'        => 'Vārdā drīkst būt tikai burti.',
+            'lastname.required' => 'Uzvārds ir obligāts.',
+            'lastname.regex'    => 'Uzvārdā drīkst būt tikai burti.',
+            'email.required'    => 'E-pasts ir obligāts.',
+            'email.email'       => 'Ievadi derīgu e-pasta adresi.',
+            'email.unique'      => 'Šis e-pasts jau ir reģistrēts.',
         ]);
 
-
-        // Prevent OAuth users from changing email
         if ($user->oauth_provider) {
             unset($validated['email']);
         }
 
-        $user->update($validated);
 
-        return back();
+        $user->update([
+            'name' => $validated['name'],
+            'lastname' => $validated['lastname'],
+        ]);
+
+
+        if (!$user->oauth_provider && $validated['email'] !== $user->email) {
+            $user->pending_email = $validated['email'];
+            $user->save();
+
+            // Send to pending_email, not current email
+            Notification::route('mail', $user->pending_email)
+                ->notify(new VerifyPendingEmail($user));
+        }
+
+        return back()->with('status', 'profile-updated');
     }
 
     /**
      * Delete the user's account.
      */
+
+    public function verifyPendingEmail(Request $request, \App\Models\User $user)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403);
+        }
+
+        if (!$user->pending_email) {
+            return redirect()->route('profile.settings.edit')
+                ->with('status', 'no-pending-email');
+        }
+
+        $user->email = $user->pending_email;
+        $user->pending_email = null;
+        $user->email_verified_at = now();
+        $user->save();
+
+        return redirect()->route('profile.settings.edit')
+            ->with('status', 'email-updated');
+    }
+
+    public function cancelEmailChange(Request $request)
+    {
+        $request->user()->update(['pending_email' => null]);
+
+        return back()->with('status', 'email-change-cancelled');
+    }
     public function destroy(Request $request)
     {
         $user = $request->user();
 
-        // Only validate password for non-OAuth users
-        if (!$user->oauth_provider) {
-            $request->validate([
-                'password' => ['required', 'current_password'],
-            ], [
-                'password.required' => 'Parole ir obligāta',
-                'password.current_password' => 'Nepareiza parole',
-            ]);
-        }
-
         Auth::logout();
 
-        // Delete user's related data if needed
         if ($user->profile && $user->profile->photos) {
             foreach ($user->profile->photos as $photo) {
                 \Storage::disk('public')->delete($photo->photo_path);
@@ -105,6 +141,5 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Inertia::location(route('home'));
-
     }
 }

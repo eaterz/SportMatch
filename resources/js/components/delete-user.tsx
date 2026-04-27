@@ -33,44 +33,18 @@ export default function DeleteUser() {
                         <Form
                             method="delete"
                             action={route('profile.destroy')}
-                            options={{
-                                preserveScroll: true,
-                            }}
-                            onError={() => passwordInput.current?.focus()}
+                            options={{ preserveScroll: true }}
                             resetOnSuccess
-                            className="space-y-6"
                         >
-                            {({ resetAndClearErrors, processing, errors }) => (
-                                <>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="password" className="sr-only">
-                                            Password
-                                        </Label>
-
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            name="password"
-                                            ref={passwordInput}
-                                            placeholder="Password"
-                                            autoComplete="current-password"
-                                        />
-
-                                        <InputError message={errors.password} />
-                                    </div>
-
-                                    <DialogFooter className="gap-2">
-                                        <DialogClose asChild>
-                                            <Button variant="secondary" onClick={() => resetAndClearErrors()}>
-                                                Cancel
-                                            </Button>
-                                        </DialogClose>
-
-                                        <Button variant="destructive" disabled={processing} asChild>
-                                            <button type="submit">Delete account</button>
-                                        </Button>
-                                    </DialogFooter>
-                                </>
+                            {({ processing }) => (
+                                <DialogFooter className="gap-2">
+                                    <DialogClose asChild>
+                                        <Button variant="secondary">Cancel</Button>
+                                    </DialogClose>
+                                    <Button variant="destructive" disabled={processing} asChild>
+                                        <button type="submit">Delete account</button>
+                                    </Button>
+                                </DialogFooter>
                             )}
                         </Form>
                     </DialogContent>

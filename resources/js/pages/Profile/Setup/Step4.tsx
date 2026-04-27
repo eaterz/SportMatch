@@ -31,7 +31,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            setUploadError(`Fails ir pārāk liels (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimālais izmērs: 3 MB`);
+            setUploadError(`Fails ir pārāk liels (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimālais izmērs: 5 MB`);
             return;
         }
 
@@ -239,7 +239,7 @@ export default function Step4({ photos = [], currentStep, totalSteps }: Props) {
                             <ul className="text-xs text-blue-800 space-y-1">
                                 <li className="flex items-start gap-2">
                                     <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <span>Formāts: JPG vai PNG, maksimums 3 MB</span>
+                                    <span>Formāts: JPG vai PNG, maksimums 5 MB</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <Check className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />

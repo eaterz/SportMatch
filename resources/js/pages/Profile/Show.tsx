@@ -331,7 +331,7 @@ export default function ProfileShow({ user, photos = [], cities = [] }: Props) {
                                                         className="fixed inset-0 z-10"
                                                         onClick={() => setShowCityDropdown(false)}
                                                     />
-                                                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                    <div className="z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                                                         {filteredCities.length > 0 ? (
                                                             filteredCities.map(city => (
                                                                 <div

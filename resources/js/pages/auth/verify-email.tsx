@@ -1,12 +1,24 @@
-import React from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
     const { post, processing } = useForm({});
+    const [deleting, setDeleting] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const resendVerification = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('verification.send'));
+    };
+
+    const deleteAccount = (e: React.FormEvent) => {
+        e.preventDefault();
+        setDeleting(true);
+        router.delete(route('profile.settings.destroy'), {
+            onSuccess: () => router.visit('/'),
+            onError: () => setDeleting(false),
+            onFinish: () => setDeleting(false),
+        });
     };
 
     return (
@@ -28,7 +40,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     Ja nesaņēmi e-pastu, vari to nosūtīt vēlreiz.
                 </p>
 
-                <form onSubmit={resendVerification} className="text-center">
+                <form onSubmit={resendVerification} className="text-center mb-4">
                     <button
                         type="submit"
                         disabled={processing}
@@ -37,6 +49,41 @@ export default function VerifyEmail({ status }: { status?: string }) {
                         Nosūtīt vēlreiz
                     </button>
                 </form>
+
+                <hr className="my-4 border-gray-200" />
+
+                {!showConfirm ? (
+                    <div className="text-center">
+                        <button
+                            onClick={() => setShowConfirm(true)}
+                            className="text-red-500 text-sm hover:underline"
+                        >
+                            Dzēst profilu
+                        </button>
+                    </div>
+                ) : (
+                    <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-3">
+                            Vai tiešām vēlies dzēst savu profilu? Šo darbību nevar atsaukt.
+                        </p>
+                        <div className="flex justify-center gap-3">
+                            <button
+                                onClick={() => setShowConfirm(false)}
+                                disabled={deleting}
+                                className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Atcelt
+                            </button>
+                            <button
+                                onClick={deleteAccount}
+                                disabled={deleting}
+                                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {deleting ? 'Dzēš...' : 'Jā, dzēst profilu'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

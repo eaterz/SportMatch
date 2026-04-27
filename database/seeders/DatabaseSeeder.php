@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Volejbols',     'name_en' => 'Volleyball',   'icon' => '🏐'],
             ['name' => 'Badmintons',    'name_en' => 'Badminton',    'icon' => '🏸'],
             ['name' => 'Galda teniss',  'name_en' => 'Table Tennis', 'icon' => '🏓'],
-            ['name' => 'Skrējiens',     'name_en' => 'Running',      'icon' => '🏃'],
+            ['name' => 'Skriešana',     'name_en' => 'Running',      'icon' => '🏃'],
             ['name' => 'Riteņbraukšana','name_en' => 'Cycling',      'icon' => '🚴'],
             ['name' => 'Peldēšana',     'name_en' => 'Swimming',     'icon' => '🏊'],
             ['name' => 'Fitnes',        'name_en' => 'Fitness',      'icon' => '💪'],
